@@ -1,0 +1,25 @@
+{
+  "name": "relyq",
+  "description": "A reliable redis-backed queue.",
+  "version": "0.0.1",
+  "author": "Jon Eisen <jon@metricfeat.com>",
+  "scripts": {
+    "test": "nodeunit relyq_test.js"
+  },
+  "devDependencies": {
+    "underscore": "~1.5.2",
+    "async": "~0.2.9",
+    "redis": "~0.8.4",
+    "moniker": "~0.1.2"
+  },
+  "keywords": [
+    "queue",
+    "distributed",
+    "redis"
+  ],
+  "repository": "git://github.com/rafflecopter/relyq.git",
+  "main": "relyq.js",
+  "dependencies": {
+    "simpleq": "~0.2.1"
+  }
+}
