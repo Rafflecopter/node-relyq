@@ -1,8 +1,8 @@
 # relyq [![Build Status][1]][2]
 
-A Redis-backed reliable task queue and state machine.
+A realtively simple Redis-backed reliable task queue and state machine.
 
-All queuing logic is done using ids. Its made up of four [simpleq](https://github.com/yanatan16/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic.
+Its made up of four [simpleq](https://github.com/yanatan16/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
 
 ## Operation
 
@@ -24,11 +24,10 @@ var relyq = require('relyq'),
 
 Operations:
 
-- `push(rq, id): simpleq.push(rq.todo, id)`
-- `process(rq): simpleq.poppipe(rq.todo, rq.doing)` Pull off a task to be processed
-- `finish(rq, id): simpleq.pullpipe(rq.doing, rq.done, id)`
-- `fail(rq, id): simpleq.pullpipe(rq.doing, rq.failed, id)`
-- `expire(rq, expiry)` Find all expired `doing` tasks and fail them.
+- `q.push(task, function (err, todo_len) {...})`
+- `q.process(function (err, task) {...})`
+- `q.finish(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
+- `q.fail(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
 
 ## Tests
 
