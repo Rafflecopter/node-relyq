@@ -112,10 +112,7 @@ tests.testFinish = function (test) {
     checkByList(test, Q.todo, ['argument']),
     checkByList(test, Q.doing, ['else']),
     checkByList(test, Q.done, ['something'])
-  ], function (err, results) {
-    test.ifError(err);
-    test.done();
-  });
+  ], test.done);
 };
 
 tests.testFail = function (test) {
@@ -130,8 +127,21 @@ tests.testFail = function (test) {
     checkByList(test, Q.doing, ['else']),
     checkByList(test, Q.done, []),
     checkByList(test, Q.failed, ['something'])
+  ], test.done);
+};
+
+tests.testsFinishFailBoth = function (test) {
+  async.series([
+    _.bind(Q.push, Q, 'job'),
+    _.bind(Q.process, Q),
+    _.bind(Q.fail, Q, 'job')
   ], function (err, results) {
     test.ifError(err);
-    test.done();
-  });
+    test.equal(results[2], 1);
+    Q.finish('job', function (err, ret) {
+      test.ok(err instanceof Error);
+      test.equal(ret, 0);
+      test.done();
+    });
+  })
 };

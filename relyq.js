@@ -33,11 +33,21 @@ Q.prototype.bprocess = function bprocess(cb) {
 };
 
 Q.prototype.finish = function finish(id, cb) {
-  this.doing.pullpipe(this.done, id, cb);
+  this.doing.spullpipe(this.done, id, function (err, ret) {
+    if (!err && ret === 0) {
+      err = new Error('Element ' + id + ' is not currently processing.');
+    }
+    cb(err, ret);
+  });
 };
 
 Q.prototype.fail = function fail(id, cb) {
-  this.doing.pullpipe(this.failed, id, cb);
-}
+  this.doing.spullpipe(this.failed, id, function (err, ret) {
+    if (!err && ret === 0) {
+      err = new Error('Element ' + id + ' is not currently processing.');
+    }
+    cb(err, ret);
+  });
+};
 
 exports.Q = exports.Queue = Q;

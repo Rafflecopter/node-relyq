@@ -13,13 +13,15 @@
     "moniker": "~0.1.2"
   },
   "keywords": [
+    "work-queue",
+    "task-queue",
     "queue",
     "distributed",
     "redis"
   ],
-  "repository": "git://github.com/rafflecopter/relyq.git",
+  "repository": "git://github.com/yanatan16/relyq.git",
   "main": "relyq.js",
   "dependencies": {
-    "simpleq": "~0.2.1"
+    "simpleq": "~0.3.0"
   }
 }
