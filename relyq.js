@@ -2,17 +2,20 @@
 // A reliable task queue
 
 // vendor
-var simpleq = require('simpleq');
+var async = require('async'),
+  _ = require('underscore'),
+  simpleq = require('simpleq');
 
 // -- Master Type: Q --
 // The master type, a task queue
-function Q(redis, prefix) {
+function Q(redis, prefix, storage) {
   // handle forgetting a 'new'
   if (!(this instanceof Q)) {
-    return new Q(redis);
+    return new Q(redis, prefix);
   }
 
   this._prefix = prefix;
+  this._storage = storage || new exports.storage.Noop();
 
   this.todo = new simpleq.Q(redis, prefix + ':todo');
   this.doing = new simpleq.Q(redis, prefix + ':doing');
@@ -20,34 +23,59 @@ function Q(redis, prefix) {
   this.done = new simpleq.Q(redis, prefix + ':done');
 }
 
-Q.prototype.push = function push(id, cb) {
-  this.todo.push(id, cb);
+Q.prototype.push = function push(task, callback) {
+  async.waterfall([
+    _.bind(this._storage.set, this._storage, task), // convert task to id
+    _.bind(this.todo.push, this.todo)
+  ], callback);
 };
 
-Q.prototype.process = function process(cb) {
-  this.todo.poppipe(this.doing, cb);
+Q.prototype.process = function process(callback) {
+  async.waterfall([
+    _.bind(this.todo.poppipe, this.todo, this.doing),
+    _.bind(this._storage.get, this._storage)
+  ], callback);
 };
 
-Q.prototype.bprocess = function bprocess(cb) {
-  this.todo.bpoppipe(this.doing, cb);
+Q.prototype.bprocess = function bprocess(callback) {
+  async.waterfall([
+    _.bind(this.todo.bpoppipe, this.todo, this.doing),
+    _.bind(this._storage.get, this._storage)
+  ], callback);
 };
 
-Q.prototype.finish = function finish(id, cb) {
-  this.doing.spullpipe(this.done, id, function (err, ret) {
-    if (!err && ret === 0) {
-      err = new Error('Element ' + id + ' is not currently processing.');
+Q.prototype.finish = function finish(task, callback) {
+  async.waterfall([
+    _.bind(this._storage.set, this._storage, task),
+    _.bind(this.doing.spullpipe, this.doing, this.done),
+    function (ret, cb) {
+      if (ret === 0) {
+        return cb(new Error('Element ' + task + ' is not currently processing.'));
+      }
+      cb(null, ret);
     }
-    cb(err, ret);
-  });
+  ], callback);
 };
 
-Q.prototype.fail = function fail(id, cb) {
-  this.doing.spullpipe(this.failed, id, function (err, ret) {
-    if (!err && ret === 0) {
-      err = new Error('Element ' + id + ' is not currently processing.');
+Q.prototype.fail = function fail(task, callback) {
+  async.waterfall([
+    _.bind(this._storage.set, this._storage, task),
+    _.bind(this.doing.spullpipe, this.doing, this.failed),
+    function (ret, cb) {
+      if (ret === 0) {
+        return cb(new Error('Element ' + task + ' is not currently processing.'));
+      }
+      cb(null, ret);
     }
-    cb(err, ret);
-  });
+  ], callback);
 };
 
 exports.Q = exports.Queue = Q;
+
+exports.storage = {
+  Noop: require('./storage/noop'),
+  InPlaceJson: require('./storage/json_inplace'),
+  InPlaceMsgPack: require('./storage/msgpack_inplace'),
+  RedisJson: require('./storage/json_redis'),
+  Mongo: require('./storage/mongo')
+};

@@ -4,12 +4,9 @@
   "version": "0.0.1",
   "author": "Jon Eisen <jon@metricfeat.com>",
   "scripts": {
-    "test": "nodeunit relyq_test.js"
+    "test": "nodeunit tests"
   },
   "devDependencies": {
-    "underscore": "~1.5.2",
-    "async": "~0.2.9",
-    "redis": "~0.8.4",
     "moniker": "~0.1.2"
   },
   "keywords": [
@@ -22,6 +19,11 @@
   "repository": "git://github.com/yanatan16/relyq.git",
   "main": "relyq.js",
   "dependencies": {
-    "simpleq": "~0.3.0"
+    "simpleq": "~0.3.1",
+    "underscore": "~1.5.2",
+    "async": "~0.2.9",
+    "redis": "~0.8.4",
+    "msgpack": "~0.2.1",
+    "mongodb": "~1.3.19"
   }
 }
