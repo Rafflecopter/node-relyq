@@ -3,6 +3,7 @@ node_js:
   - 0.10
 services:
   - redis-server
+  - mongo
 before_script:
   - npm install -g nodeunit
   - npm install --dev
