@@ -8,19 +8,25 @@ var async = require('async'),
 
 // -- Master Type: Q --
 // The master type, a task queue
-function Q(redis, prefix, storage) {
+function Q(redis, prefix_or_opts, storage) {
   // handle forgetting a 'new'
   if (!(this instanceof Q)) {
     return new Q(redis, prefix);
   }
 
-  this._prefix = prefix;
+  if (_.isObject(prefix_or_opts)) {
+    this._delimeter = prefix_or_opts.delimeter || ':';
+    this._prefix = prefix_or_opts.prefix;
+  } else {
+    this._prefix = prefix_or_opts;
+  }
+
   this._storage = storage || new exports.storage.Noop();
 
-  this.todo = new simpleq.Q(redis, prefix + ':todo');
-  this.doing = new simpleq.Q(redis, prefix + ':doing');
-  this.failed = new simpleq.Q(redis, prefix + ':failed');
-  this.done = new simpleq.Q(redis, prefix + ':done');
+  this.todo = new simpleq.Q(redis, this._prefix + ':todo');
+  this.doing = new simpleq.Q(redis, this._prefix + ':doing');
+  this.failed = new simpleq.Q(redis, this._prefix + ':failed');
+  this.done = new simpleq.Q(redis, this._prefix + ':done');
 }
 
 Q.prototype.push = function push(task, callback) {
@@ -77,5 +83,6 @@ exports.storage = {
   InPlaceJson: require('./storage/json_inplace'),
   InPlaceMsgPack: require('./storage/msgpack_inplace'),
   RedisJson: require('./storage/json_redis'),
+  RedisMsgPack: require('./storage/msgpack_redis'),
   Mongo: require('./storage/mongo')
 };

@@ -24,7 +24,7 @@ var storages = {
   'MsgPackInPlace': new relyq.storage.InPlaceMsgPack(),
   'RedisJson': new relyq.storage.RedisJson(redis, 'relyq-test:RedisJson:jobs'),
   'RedisJson2': new relyq.storage.RedisJson(redis, 'relyq-test:RedisJson2:jobs', {idfield: 'otherid'}),
-  'MsgPackJson': new relyq.storage.RedisJson(redis, 'relyq-test:MsgPackJson:jobs'),
+  'MsgPackJson': new relyq.storage.RedisMsgPack(redis, 'relyq-test:MsgPackJson:jobs'),
   'Mongo': new relyq.storage.Mongo(mongoClient, 'test', 'relyq.jobs')
 }
 
