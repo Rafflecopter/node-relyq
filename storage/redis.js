@@ -76,8 +76,10 @@ RedisStorage.prototype.set = function (taskobj, taskid, callback) {
   }
 };
 
-RedisStorage.prototype.del = function (taskid, callback) {
-  this._redis.del(this._key(taskid), callback);
+RedisStorage.prototype.del = function (taskobj, taskid, callback) {
+  this._redis.del(this._key(taskid), function (err) {
+    callback(err, taskid);
+  });
 };
 
 // -- Redis Json Storage --

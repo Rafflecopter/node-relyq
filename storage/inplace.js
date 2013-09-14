@@ -41,9 +41,9 @@ InPlace.prototype.deserialize = function (str) {
 };
 
 
-InPlace.prototype.get = function (taskid, callback) {
+InPlace.prototype.get = function (refid, callback) {
   try {
-    callback(null, this.deserialize(taskid));
+    callback(null, this.deserialize(refid));
   } catch (e) {
     callback(e);
   }
@@ -56,6 +56,8 @@ InPlace.prototype.set = function (taskobj, _taskid, callback) {
     callback(e);
   }
 };
+
+InPlace.prototype.del = InPlace.prototype.set;
 
 // -- InPlace Json Storage --
 

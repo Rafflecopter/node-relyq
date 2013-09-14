@@ -95,7 +95,9 @@ function createTests(Q) {
         checkByStorageList(test, Q.todo, []),
         checkByStorageList(test, Q.doing, []),
         checkByStorageList(test, Q.done, [task1]),
-        checkByStorageList(test, Q.failed, [task2])
+        checkByStorageList(test, Q.failed, [task2]),
+        _.bind(Q.remove, Q, 'done', task1),
+        checkByStorageList(test, Q.done, [])
       ], function (err, results) {
         test.ifError(err);
         test.deepEqual(results[2], task1);

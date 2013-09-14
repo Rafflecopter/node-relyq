@@ -49,4 +49,10 @@ MongoStorage.prototype.set = function (taskobj, taskid, callback) {
   });
 };
 
+MongoStorage.prototype.del = function (taskobj, taskid, callback) {
+  this._mongo.remove({_id: taskid}, function (err) {
+    callback(err, taskid);
+  });
+};
+
 module.exports = MongoStorage;

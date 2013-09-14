@@ -144,3 +144,17 @@ tests.testsFinishFailBoth = function (test) {
     });
   })
 };
+
+tests.testRemoveFrom = function (test) {
+  async.series([
+    _.bind(Q.push, Q, 'foo'),
+    _.bind(Q.push, Q, 'bar'),
+    _.bind(Q.process, Q),
+    _.bind(Q.finish, Q, 'foo'),
+    _.bind(Q.remove, Q, 'done', 'foo'),
+    _.bind(Q.remove, Q, 'todo', 'bar'),
+    checkByList(test, Q.done, []),
+    checkByList(test, Q.doing, []),
+    checkByList(test, Q.todo, [])
+  ], test.done);
+};
