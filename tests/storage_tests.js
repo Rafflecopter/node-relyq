@@ -28,7 +28,10 @@ var storages = {
   'MsgPackJson': new relyq.RedisMsgPackQ(redis, prefix('MsgPackJson')),
   'Mongo': new relyq.MongoQ(mongoClient, redis, { db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo') }),
   'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', ensureid: true /* fails with false */}),
-  'CreateId2': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId2'), idfield: 'omgid', ensureid: true, createid: counter() })
+  'CreateId2': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId2'), idfield: 'omgid', ensureid: true, createid: counter() }),
+  'Clone': new relyq.InPlaceJsonQ(redis, prefix('Clone')).clone(),
+  'CloneRedis': new relyq.RedisJsonQ(redis, prefix('CloneRedis')).clone(),
+  'CloneMongo': new relyq.MongoQ(mongoClient, redis, prefix('CloneMongo')).clone(),
 }
 
 _.each(storages, function (q, name) {
@@ -38,6 +41,9 @@ _.each(storages, function (q, name) {
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
   redis.end();
+  _.each('Clone CloneRedis CloneMongo'.split(' '), function (tst) {
+    storages[tst].doing._redis.end();
+  });
   mongoClient.db('test').collection('relyq.jobs').drop(function () {
     mongoClient.close(test.done);
   });

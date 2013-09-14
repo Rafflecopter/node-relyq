@@ -6,7 +6,8 @@ var util = require('util');
 
 // vendor
 var ObjectId = require('mongodb').ObjectID,
-  _ = require('underscore');
+  _ = require('underscore'),
+  redisPkg = require('redis');
 
 // local
 var Q = require('../relyq');
@@ -30,6 +31,10 @@ function MongoStorage(mongoClient, redis, opts) {
   if (!(this instanceof MongoStorage)) {
     return new MongoStorage(mongoClient, redis, opts);
   }
+
+  this.clone = function () {
+    return new MongoStorage(mongoClient, redisPkg.createClient(redis.port, redis.host, redis.options), opts);
+  };
 
   this._mongo = mongoClient.db(opts.db || 'test').collection(opts.collection || 'relyq');
 

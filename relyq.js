@@ -4,6 +4,7 @@
 // vendor
 var async = require('async'),
   _ = require('underscore'),
+  redisPkg = require('redis'),
   simpleq = require('simpleq'),
   uuid = require('uuid');
 
@@ -14,6 +15,12 @@ function Q(redis, preopts) {
   if (!(this instanceof Q)) {
     return new Q(redis, preopts);
   }
+
+  var Constructor = this.constructor;
+  this.clone = this.clone || function () {
+    console.log('cloning', Constructor.name);
+    return new Constructor(redisPkg.createClient(redis.port, redis.host, redis.options), preopts);
+  };
 
   this._delimeter = preopts.delimeter || ':';
   this._idfield = preopts.idfield || 'id';
