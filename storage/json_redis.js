@@ -24,7 +24,6 @@ function RedisStorage(redis, prefix, opts) {
 
   this._redis = redis;
   this._prefix = prefix;
-  this._idfield = opts.idfield || 'id';
   this._delimeter = opts.delimeter || ':';
 }
 
@@ -46,8 +45,7 @@ RedisStorage.prototype.get = function (taskid, callback) {
   });
 };
 
-RedisStorage.prototype.set = function (taskobj, callback) {
-  var taskid = taskobj[this._idfield];
+RedisStorage.prototype.set = function (taskobj, taskid, callback) {
   try {
     this._redis.set(this._key(taskid), JSON.stringify(taskobj), function (err, ok) {
       callback(err, taskid);

@@ -31,7 +31,7 @@ MsgPackInPlace.prototype.get = function (taskid, callback) {
   }
 };
 
-MsgPackInPlace.prototype.set = function (taskobj, callback) {
+MsgPackInPlace.prototype.set = function (taskobj, _taskid, callback) {
   try {
     callback(null, msgpack.pack(taskobj).toString('binary'));
   } catch (e) {

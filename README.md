@@ -4,7 +4,7 @@ A realtively simple Redis-backed reliable task queue and state machine.
 
 Its made up of four [simpleq](https://github.com/yanatan16/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
 
-_Note_: relyq assumes all tasks are different, specifically that they have unique IDs. relyq does not create IDs however, that is left to the application.
+_Note_: relyq assumes all tasks are different, specifically that they have unique IDs. relyq will create an ID using uuid v4 if no id is found (using the idfield option on `new relyq.Q` or `'id'`).
 
 ## Operation
 
@@ -20,11 +20,21 @@ Creation:
 var redis = require('redis'),
   cli = redis.createClient();
 
-var relyq = require('relyq'),
-  q = new relyq.Q(cli, 'my-relyq');
+var relyq = require('relyq');
+
+// Then one of
+var q = new relyq.Q(cli, 'my-relyq');
+var q = new relyq.Q(cli, {prefix: 'my-relyq', options...});
+var q = new relyq.Q(cli, 'my-relyq', storage_backend); // see below
 ```
 
-Optionally, you can change the default delimeter from ':' to whatever you prefer by using `new relyq.Q(cli, {prefix: 'my-relyq', delimeter: '|'})`
+Options:
+
+- `prefix: 'my-relyq'` (required) - The redis key prefix for the sub-queues.
+- `delimeter: '|'` (default: ':') - The redis key delimeter for the sub-queues.
+- `idfield: 'tid'` (default: 'id') - The field of the task objects where the ID can be found.
+- `ensureid: true` (default: false) - If true, relyq will create an ID on the idfield if one does not already exist.
+- `createid: function (task) { return ... }` (default `uuid.v4()`) - The function used to create new IDs (strings). The task object is the first argument.
 
 Operations:
 
@@ -57,8 +67,8 @@ In-place solutions simply serialize task objects and store them in the queue dir
 
 The Redis storage backend stores serialized task objects in Redis.
 
-- `new relyq.storage.RedisJson(redisClient, prefix, [{idfield: 'id', delimeter: ':'}])`
-- `new relyq.storage.RedisMsgPack(redisClient, prefix, [{idfield: 'id', delimeter: ':'}])`
+- `new relyq.storage.RedisJson(redisClient, prefix, [{delimeter: ':'}])`
+- `new relyq.storage.RedisMsgPack(redisClient, prefix, [{delimeter: ':'}])`
 
 ### Mongo
 
@@ -67,7 +77,7 @@ The Mongo storage backend stores task objects in Mongo.
 ```
 var mongo = require('mongodb'),
   mongoClient = new mongo.MongoClient(new mongo.Server('my-server.com', 27017)),
-  storage = new relyq.storage.Mongo(mongoClient, 'mydb', 'my.favorite.collection', [{idfield: 'id'}]);
+  storage = new relyq.storage.Mongo(mongoClient, 'mydb', 'my.favorite.collection');
 ```
 
 ## License

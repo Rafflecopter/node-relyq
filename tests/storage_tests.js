@@ -1,4 +1,5 @@
 // storage_test.js
+require('longjohn');
 
 // vendor
 var redis = require('redis').createClient(),
@@ -23,13 +24,15 @@ var storages = {
   'InPlaceJson': new relyq.storage.InPlaceJson(),
   'MsgPackInPlace': new relyq.storage.InPlaceMsgPack(),
   'RedisJson': new relyq.storage.RedisJson(redis, 'relyq-test:RedisJson:jobs'),
-  'RedisJson2': new relyq.storage.RedisJson(redis, 'relyq-test:RedisJson2:jobs', {idfield: 'otherid'}),
+  'RedisJson2': [new relyq.storage.RedisJson(redis, 'relyq-test:RedisJson2:jobs'), { idfield: 'otherid' }],
   'MsgPackJson': new relyq.storage.RedisMsgPack(redis, 'relyq-test:MsgPackJson:jobs'),
-  'Mongo': new relyq.storage.Mongo(mongoClient, 'test', 'relyq.jobs')
+  'Mongo': new relyq.storage.Mongo(mongoClient, 'test', 'relyq.jobs'),
+  'CreateId': [new relyq.storage.RedisJson(redis, 'relyq-test:CreateId:jobs'), { idfield: 'omgid', ensureid: true /* fails with false */}],
+  'CreateId2': [new relyq.storage.RedisJson(redis, 'relyq-test:CreateId2:jobs'), { idfield: 'omgid', ensureid: true, createid: counter() }]
 }
 
-_.each(storages, function (storage, name) {
-  exports[name] = createTests(storage);
+_.each(storages, function (args, name) {
+  exports[name] = createTests.apply(null, [].concat(args));
 });
 
 // Clean up redis to allow a clean escape!
@@ -41,14 +44,14 @@ exports.cleanUp = function cleanUp (test) {
 };
 
 
-function createTests(storage) {
+function createTests(storage, params) {
   var name = storage.constructor.name,
     tests = {},
     Q;
 
   tests.setUp = function setUp (callback) {
     var prefix = ['relyq-test', name, Moniker.choose()].join(':');
-    Q = new relyq.Q(redis, prefix, storage);
+    Q = new relyq.Q(redis, _.extend(params || {}, { prefix: prefix }), storage);
     callback();
   };
 
@@ -94,8 +97,8 @@ function createTests(storage) {
       _.bind(Q.push, Q, task2),
       _.bind(Q.process, Q),
       _.bind(Q.process, Q),
-      _.bind(Q.finish, Q, task1),
       _.bind(Q.fail, Q, task2),
+      _.bind(Q.finish, Q, task1),
       checkByStorageList(test, Q.todo, []),
       checkByStorageList(test, Q.doing, []),
       checkByStorageList(test, Q.done, [task1]),
@@ -113,4 +116,11 @@ function createTests(storage) {
   };
 
   return tests;
+}
+
+function counter(n) {
+  n = n || 0;
+  return function () {
+    return '' + n++;
+  };
 }

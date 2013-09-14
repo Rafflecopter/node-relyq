@@ -4,22 +4,23 @@
 // vendor
 var async = require('async'),
   _ = require('underscore'),
-  simpleq = require('simpleq');
+  simpleq = require('simpleq'),
+  uuid = require('uuid');
 
 // -- Master Type: Q --
 // The master type, a task queue
-function Q(redis, prefix_or_opts, storage) {
+function Q(redis, preopts, storage) {
   // handle forgetting a 'new'
   if (!(this instanceof Q)) {
     return new Q(redis, prefix);
   }
 
-  if (_.isObject(prefix_or_opts)) {
-    this._delimeter = prefix_or_opts.delimeter || ':';
-    this._prefix = prefix_or_opts.prefix;
-  } else {
-    this._prefix = prefix_or_opts;
-  }
+
+  this._delimeter = preopts.delimeter || ':';
+  this._idfield = preopts.idfield || 'id';
+  this._createid = preopts.createid || uuid.v4;
+  this._ensureid = preopts.ensureid || false;
+  this._prefix = preopts.prefix || preopts;
 
   this._storage = storage || new exports.storage.Noop();
 
@@ -29,9 +30,13 @@ function Q(redis, prefix_or_opts, storage) {
   this.done = new simpleq.Q(redis, this._prefix + ':done');
 }
 
+Q.prototype._getid = function getid(task) {
+  return task[this._idfield] = task[this._idfield] || (this._ensureid && this._createid(task));
+};
+
 Q.prototype.push = function push(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task), // convert task to id
+    _.bind(this._storage.set, this._storage, task, this._getid(task)), // convert task to id
     _.bind(this.todo.push, this.todo)
   ], callback);
 };
@@ -52,7 +57,7 @@ Q.prototype.bprocess = function bprocess(callback) {
 
 Q.prototype.finish = function finish(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task),
+    _.bind(this._storage.set, this._storage, task, this._getid(task)),
     _.bind(this.doing.spullpipe, this.doing, this.done),
     function (ret, cb) {
       if (ret === 0) {
@@ -65,7 +70,7 @@ Q.prototype.finish = function finish(task, callback) {
 
 Q.prototype.fail = function fail(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task),
+    _.bind(this._storage.set, this._storage, task, this._getid(task)),
     _.bind(this.doing.spullpipe, this.doing, this.failed),
     function (ret, cb) {
       if (ret === 0) {

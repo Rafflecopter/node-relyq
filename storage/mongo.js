@@ -13,18 +13,17 @@
 // taskobj - Application level task objects
 // taskid - A task identifier that can be used to store and later retrieve the taskobj
 
-var ObjectId = require('mongodb').ObjectID;
+var ObjectId = require('mongodb').ObjectID,
+  _ = require('underscore');
 
 // -- Main Type --
 // Mongo Storage Backend
-function MongoStorage(mongoClient, db, coll, opts) {
+function MongoStorage(mongoClient, db, coll) {
   // handle forgetting a 'new'
   if (!(this instanceof MongoStorage)) {
-    return new MongoStorage(mongoClient, db, coll, opts);
+    return new MongoStorage(mongoClient, db, coll);
   }
-  opts = opts || {};
 
-  this._idfield = opts.idfield || 'id';
   this._mongo = mongoClient.db(db).collection(coll);
 }
 
@@ -32,8 +31,8 @@ MongoStorage.prototype.get = function (taskid, callback) {
   this._mongo.findOne({_id: taskid}, callback);
 };
 
-MongoStorage.prototype.set = function (taskobj, callback) {
-  var taskid = taskobj._id = taskobj[this._idfield];
+MongoStorage.prototype.set = function (taskobj, taskid, callback) {
+  taskobj._id = taskid;
   this._mongo.save(taskobj, function (err) {
     callback(err, taskid);
   });

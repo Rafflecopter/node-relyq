@@ -21,7 +21,7 @@ NoopStorage.prototype.get = function (taskid, callback) {
   callback(null, taskid);
 };
 
-NoopStorage.prototype.set = function (taskobj, callback) {
+NoopStorage.prototype.set = function (taskobj, taskid, callback) {
   callback(null, taskobj);
 };
 

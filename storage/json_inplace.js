@@ -29,7 +29,7 @@ JsonInPlace.prototype.get = function (taskid, callback) {
   }
 };
 
-JsonInPlace.prototype.set = function (taskobj, callback) {
+JsonInPlace.prototype.set = function (taskobj, _taskid, callback) {
   try {
     callback(null, JSON.stringify(taskobj));
   } catch (e) {

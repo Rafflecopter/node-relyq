@@ -48,8 +48,7 @@ RedisMsgPackStorage.prototype.get = function (taskid, callback) {
   });
 };
 
-RedisMsgPackStorage.prototype.set = function (taskobj, callback) {
-  var taskid = taskobj[this._idfield];
+RedisMsgPackStorage.prototype.set = function (taskobj, taskid, callback) {
   try {
     this._redis.set(this._key(taskid), msgpack.pack(taskobj).toString('binary'), function (err, ok) {
       callback(err, taskid);
