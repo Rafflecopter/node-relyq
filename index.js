@@ -1,13 +1,16 @@
 
-var Q = require('./relyq');
+var Q = require('./relyq'),
+  inplace = require('./storage/inplace'),
+  redis = require('./storage/redis'),
+  mongo = require('./storage/mongo');
 
 
 module.exports = {
   Q: Q,
   InPlaceBasic: Q,
-  InPlaceJsonQ: require('./storage/json_inplace'),
-  InPlaceMsgPackQ: require('./storage/msgpack_inplace'),
-  RedisJsonQ: require('./storage/json_redis'),
-  RedisMsgPackQ: require('./storage/msgpack_redis'),
-  MongoQ: require('./storage/mongo')
+  InPlaceJsonQ: inplace.json,
+  InPlaceMsgPackQ: inplace.msgpack,
+  RedisJsonQ: redis.json,
+  RedisMsgPackQ: redis.msgpack,
+  MongoQ: mongo
 };

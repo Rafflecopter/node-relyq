@@ -28,14 +28,21 @@ function Q(redis, preopts) {
 }
 
 // @overridable
+// Get a task object from its id
 Q.prototype.get = function get(taskid, callback) {
-  // Can be overridden by more complex storage technique
   callback(null, taskid);
 };
 
 // @overridable
+// Set a task object
 Q.prototype.set = function set(taskobj, taskid, callback) {
   callback(null, taskobj);
+};
+
+// @overridable
+// Delete the task obj
+Q.prototype.del = function del(taskid, callback) {
+  callback();
 };
 
 Q.prototype._getid = function getid(task) {
@@ -86,6 +93,13 @@ Q.prototype.fail = function fail(task, callback) {
       }
       cb(null, ret);
     }
+  ], callback);
+};
+
+Q.prototype.remove = function remove(from, taskid, callback) {
+  async.parallel([
+    _.bind(this[from].pull, this[from], taskid),
+    _.bind(this.del, this, taskid)
   ], callback);
 };
 
