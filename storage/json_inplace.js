@@ -1,6 +1,12 @@
 // storage/json_inplace.js
 // A simple storage backend for tasks that stores serialized taskobjs as json
 
+// builtin
+var util = require('util');
+
+// local
+var Q = require('../relyq');
+
 // Storage services must provide two functions
 // {
 //   get: function (taskid, callback) {
@@ -15,11 +21,15 @@
 
 // The JsonInPlace storage service serializes the taskobj into json and sets that
 // as the taskid.
-function JsonInPlace() {
+function JsonInPlace(redis, opts) {
   if (!(this instanceof JsonInPlace)) {
-    return new JsonInPlace();
+    return new JsonInPlace(redis, opts);
   }
-};
+
+  Q.call(this, redis, opts);
+}
+
+util.inherits(JsonInPlace, Q);
 
 JsonInPlace.prototype.get = function (taskid, callback) {
   try {

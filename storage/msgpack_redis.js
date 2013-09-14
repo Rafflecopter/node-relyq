@@ -1,6 +1,15 @@
 // storage/msgpack_redis.js
 // A task storage backend to store task object as msgpack in Redis
 
+// builtin
+var util = require('util');
+
+// vendor
+var msgpack = require('msgpack');
+
+// local
+var Q = require('../relyq');
+
 // Storage services must provide two functions
 // {
 //   get: function (taskid, callback) {
@@ -13,22 +22,22 @@
 // taskobj - Application level task objects
 // taskid - A task identifier that can be used to store and later retrieve the taskobj
 
-var msgpack = require('msgpack');
-
 // -- Main Type --
 // Redis Storage Backend
-function RedisMsgPackStorage(redis, prefix, opts) {
+function RedisMsgPackStorage(redis, preopts) {
   // handle forgetting a 'new'
   if (!(this instanceof RedisMsgPackStorage)) {
-    return new RedisMsgPackStorage(redis, prefix, opts);
+    return new RedisMsgPackStorage(redis, preopts);
   }
-  opts = opts || {};
 
   this._redis = redis;
-  this._prefix = prefix;
-  this._idfield = opts.idfield || 'id';
-  this._delimeter = opts.delimeter || ':';
+  this._prefix = preopts.storage_prefix || ((preopts.prefix || preopts) + this._delimeter + 'jobs');
+  this._delimeter = preopts.delimeter || ':';
+
+  Q.call(this, redis, preopts);
 }
+
+util.inherits(RedisMsgPackStorage, Q);
 
 RedisMsgPackStorage.prototype._key = function (taskid) {
   return this._prefix + this._delimeter + taskid;

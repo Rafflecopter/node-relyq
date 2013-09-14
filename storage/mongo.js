@@ -1,6 +1,16 @@
 // storage/mongo.js
 // A task storage backend to store task object in mongo
 
+// builtin
+var util = require('util');
+
+// vendor
+var ObjectId = require('mongodb').ObjectID,
+  _ = require('underscore');
+
+// local
+var Q = require('../relyq');
+
 // Storage services must provide two functions
 // {
 //   get: function (taskid, callback) {
@@ -13,19 +23,20 @@
 // taskobj - Application level task objects
 // taskid - A task identifier that can be used to store and later retrieve the taskobj
 
-var ObjectId = require('mongodb').ObjectID,
-  _ = require('underscore');
-
 // -- Main Type --
 // Mongo Storage Backend
-function MongoStorage(mongoClient, db, coll) {
+function MongoStorage(mongoClient, redis, opts) {
   // handle forgetting a 'new'
   if (!(this instanceof MongoStorage)) {
-    return new MongoStorage(mongoClient, db, coll);
+    return new MongoStorage(mongoClient, redis, opts);
   }
 
-  this._mongo = mongoClient.db(db).collection(coll);
+  this._mongo = mongoClient.db(opts.db || 'test').collection(opts.collection || 'relyq');
+
+  Q.call(this, redis, opts);
 }
+
+util.inherits(MongoStorage, Q);
 
 MongoStorage.prototype.get = function (taskid, callback) {
   this._mongo.findOne({_id: taskid}, callback);

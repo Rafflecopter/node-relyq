@@ -1,6 +1,12 @@
 // storage/json_redis.js
 // A task storage backend to store task object as json in Redis
 
+// builtin
+var util = require('util');
+
+// local
+var Q = require('../relyq');
+
 // Storage services must provide two functions
 // {
 //   get: function (taskid, callback) {
@@ -15,17 +21,20 @@
 
 // -- Main Type --
 // Redis Storage Backend
-function RedisStorage(redis, prefix, opts) {
+function RedisStorage(redis, preopts) {
   // handle forgetting a 'new'
   if (!(this instanceof RedisStorage)) {
-    return new RedisStorage(redis, prefix, opts);
+    return new RedisStorage(redis, preopts);
   }
-  opts = opts || {};
 
   this._redis = redis;
-  this._prefix = prefix;
-  this._delimeter = opts.delimeter || ':';
+  this._delimeter = preopts.delimeter || ':';
+  this._prefix = preopts.storage_prefix || ((preopts.prefix || preopts) + this._delimeter + 'jobs');
+
+  Q.call(this, redis, preopts);
 }
+
+util.inherits(RedisStorage, Q);
 
 RedisStorage.prototype._key = function (taskid) {
   return this._prefix + this._delimeter + taskid;

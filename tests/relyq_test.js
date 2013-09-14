@@ -8,7 +8,7 @@ var redis = require('redis').createClient(),
   _ = require('underscore');
 
 // local
-var relyq = require('../relyq');
+var relyq = require('..');
 
 // Setup
 var tests = exports.tests = {},

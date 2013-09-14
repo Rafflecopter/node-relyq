@@ -9,12 +9,11 @@ var async = require('async'),
 
 // -- Master Type: Q --
 // The master type, a task queue
-function Q(redis, preopts, storage) {
+function Q(redis, preopts) {
   // handle forgetting a 'new'
   if (!(this instanceof Q)) {
-    return new Q(redis, prefix);
+    return new Q(redis, preopts);
   }
-
 
   this._delimeter = preopts.delimeter || ':';
   this._idfield = preopts.idfield || 'id';
@@ -22,13 +21,22 @@ function Q(redis, preopts, storage) {
   this._ensureid = preopts.ensureid || false;
   this._prefix = preopts.prefix || preopts;
 
-  this._storage = storage || new exports.storage.Noop();
-
   this.todo = new simpleq.Q(redis, this._prefix + ':todo');
   this.doing = new simpleq.Q(redis, this._prefix + ':doing');
   this.failed = new simpleq.Q(redis, this._prefix + ':failed');
   this.done = new simpleq.Q(redis, this._prefix + ':done');
 }
+
+// @overridable
+Q.prototype.get = function get(taskid, callback) {
+  // Can be overridden by more complex storage technique
+  callback(null, taskid);
+};
+
+// @overridable
+Q.prototype.set = function set(taskobj, taskid, callback) {
+  callback(null, taskobj);
+};
 
 Q.prototype._getid = function getid(task) {
   return task[this._idfield] = task[this._idfield] || (this._ensureid && this._createid(task));
@@ -36,7 +44,7 @@ Q.prototype._getid = function getid(task) {
 
 Q.prototype.push = function push(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task, this._getid(task)), // convert task to id
+    _.bind(this.set, this, task, this._getid(task)), // convert task to id
     _.bind(this.todo.push, this.todo)
   ], callback);
 };
@@ -44,20 +52,20 @@ Q.prototype.push = function push(task, callback) {
 Q.prototype.process = function process(callback) {
   async.waterfall([
     _.bind(this.todo.poppipe, this.todo, this.doing),
-    _.bind(this._storage.get, this._storage)
+    _.bind(this.get, this)
   ], callback);
 };
 
 Q.prototype.bprocess = function bprocess(callback) {
   async.waterfall([
     _.bind(this.todo.bpoppipe, this.todo, this.doing),
-    _.bind(this._storage.get, this._storage)
+    _.bind(this.get, this)
   ], callback);
 };
 
 Q.prototype.finish = function finish(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task, this._getid(task)),
+    _.bind(this.set, this, task, this._getid(task)),
     _.bind(this.doing.spullpipe, this.doing, this.done),
     function (ret, cb) {
       if (ret === 0) {
@@ -70,7 +78,7 @@ Q.prototype.finish = function finish(task, callback) {
 
 Q.prototype.fail = function fail(task, callback) {
   async.waterfall([
-    _.bind(this._storage.set, this._storage, task, this._getid(task)),
+    _.bind(this.set, this, task, this._getid(task)),
     _.bind(this.doing.spullpipe, this.doing, this.failed),
     function (ret, cb) {
       if (ret === 0) {
@@ -81,13 +89,4 @@ Q.prototype.fail = function fail(task, callback) {
   ], callback);
 };
 
-exports.Q = exports.Queue = Q;
-
-exports.storage = {
-  Noop: require('./storage/noop'),
-  InPlaceJson: require('./storage/json_inplace'),
-  InPlaceMsgPack: require('./storage/msgpack_inplace'),
-  RedisJson: require('./storage/json_redis'),
-  RedisMsgPack: require('./storage/msgpack_redis'),
-  Mongo: require('./storage/mongo')
-};
+module.exports = Q;
