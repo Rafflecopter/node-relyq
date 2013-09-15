@@ -28,30 +28,21 @@ function InPlace(redis, opts) {
 }
 util.inherits(InPlace, Q);
 
-// Override these to add a new serialization
-
-// @overridable
-InPlace.prototype.serialize = function (obj) {
-  return 'string';
+InPlace.prototype.ref = function (taskobj) {
+  return this.serialize(taskobj);
 };
 
-// @overridable
-InPlace.prototype.deserialize = function (str) {
-  return {str:str};
-};
-
-
-InPlace.prototype.get = function (refid, callback) {
+InPlace.prototype.get = function (taskref, callback) {
   try {
-    callback(null, this.deserialize(refid));
+    callback(null, this.deserialize(taskref));
   } catch (e) {
     callback(e);
   }
 };
 
-InPlace.prototype.set = function (taskobj, _taskid, callback) {
+InPlace.prototype.set = function (taskobj, taskref, callback) {
   try {
-    callback(null, this.serialize(taskobj));
+    callback(null, taskref);
   } catch (e) {
     callback(e);
   }

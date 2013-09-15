@@ -26,29 +26,30 @@ var Q = require('../relyq');
 
 // -- Main Type --
 // Mongo Storage Backend
-function MongoStorage(mongoClient, redis, opts) {
+function MongoStorage(redis, opts) {
   // handle forgetting a 'new'
   if (!(this instanceof MongoStorage)) {
-    return new MongoStorage(mongoClient, redis, opts);
+    return new MongoStorage(redis, opts);
   }
-
-  this.clone = function () {
-    return new MongoStorage(mongoClient, redisPkg.createClient(redis.port, redis.host, redis.options), opts);
-  };
-
-  this._mongo = mongoClient.db(opts.db || 'test').collection(opts.collection || 'relyq');
+  this._mongo = opts.mongo.db(opts.db || 'test').collection(opts.collection || 'relyq');
+  if (opts.ensureid) {
+    opts.idfield = opts.idfield || '_id';
+    opts.createid = opts.createid || function () { return new ObjectId().toString(); };
+  }
 
   Q.call(this, redis, opts);
 }
 
 util.inherits(MongoStorage, Q);
 
+MongoStorage.prototype.ref = Q.prototype._getid;
+
 MongoStorage.prototype.get = function (taskid, callback) {
   this._mongo.findOne({_id: taskid}, callback);
 };
 
 MongoStorage.prototype.set = function (taskobj, taskid, callback) {
-  taskobj._id = taskid;
+  taskobj._id = (taskobj._id || taskid).toString();
   this._mongo.save(taskobj, function (err) {
     callback(err, taskid);
   });

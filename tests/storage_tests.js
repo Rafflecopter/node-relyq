@@ -1,5 +1,5 @@
 // storage_test.js
-require('longjohn');
+// require('longjohn').async_trace_limit = -1;
 
 // vendor
 var redis = require('redis').createClient(),
@@ -25,13 +25,14 @@ var storages = {
   'MsgPackInPlace': new relyq.InPlaceMsgPackQ(redis, prefix('MsgPackJson')),
   'RedisJson': new relyq.RedisJsonQ(redis, prefix('RedisJson')),
   'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs') }),
-  'MsgPackJson': new relyq.RedisMsgPackQ(redis, prefix('MsgPackJson')),
-  'Mongo': new relyq.MongoQ(mongoClient, redis, { db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo') }),
+  'RedisMsgPack': new relyq.RedisMsgPackQ(redis, prefix('MsgPackJson')),
+  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo') }),
+  'MongoEnsure': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo'), ensureid: true }),
   'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', ensureid: true /* fails with false */}),
   'CreateId2': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId2'), idfield: 'omgid', ensureid: true, createid: counter() }),
   'Clone': new relyq.InPlaceJsonQ(redis, prefix('Clone')).clone(),
   'CloneRedis': new relyq.RedisJsonQ(redis, prefix('CloneRedis')).clone(),
-  'CloneMongo': new relyq.MongoQ(mongoClient, redis, prefix('CloneMongo')).clone(),
+  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.jobs'}).clone(),
 }
 
 _.each(storages, function (q, name) {
@@ -70,8 +71,8 @@ function createTests(Q) {
       async.waterfall([
         _.bind(sQ.list, sQ),
         function (list, cb) {
-          async.map(list, function (id, cb2) {
-            Q.get(id, function (err, obj) {
+          async.map(list, function (ref, cb2) {
+            Q.get(ref, function (err, obj) {
               if (ignore && object) { delete object[ignore]; }
               cb2(err, obj);
             });
@@ -103,11 +104,22 @@ function createTests(Q) {
         checkByStorageList(test, Q.done, [task1]),
         checkByStorageList(test, Q.failed, [task2]),
         _.bind(Q.remove, Q, 'done', task1),
-        checkByStorageList(test, Q.done, [])
+        _.bind(Q.remove, Q, 'failed', task2, true),
+        checkByStorageList(test, Q.done, []),
+        checkByStorageList(test, Q.failed, []),
+        _.bind(Q.get, Q, Q.ref(task2)),
+        _.bind(Q.get, Q, Q.ref(task1))
       ], function (err, results) {
         test.ifError(err);
         test.deepEqual(results[2], task1);
         test.deepEqual(results[3], task2);
+        test.deepEqual(_.last(results, 2)[0], task2);
+
+        if (!/^InPlace/.test(Q.constructor.name)) {
+          test.deepEqual(_.last(results), null);
+        } else {
+          test.deepEqual(_.last(results), task1);
+        }
 
         Q.finish(task2, function (err) {
           test.ok(err instanceof Error);

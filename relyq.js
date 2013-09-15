@@ -36,31 +36,43 @@ function Q(redis, preopts) {
 
 // @overridable
 // Get a task object from its reference id
-Q.prototype.get = function get(refid, callback) {
-  callback(null, refid);
+Q.prototype.get = function get(taskref, callback) {
+  callback(null, taskref);
 };
 
 // @overridable
 // Set a task object and return its reference ID
-Q.prototype.set = function set(taskobj, tid, callback) {
-  callback(null, taskobj);
+Q.prototype.set = function set(taskobj, taskref, callback) {
+  callback();
 };
 
 // @overridable
 // Delete the task obj and return its reference ID
-Q.prototype.del = function del(taskobj, tid, callback) {
-  callback(null, taskobj);
+Q.prototype.del = function del(taskobj, taskref, callback) {
+  callback();
 };
+
+// Override these to add a new serialization
+// refs get put into the queue
+// @overridable
+Q.prototype.ref = function (obj) {
+  return obj;
+};
+
+// -- Superclass methods ---
 
 Q.prototype._getid = function getid(task) {
   return task[this._idfield] = task[this._idfield] || (this._ensureid && this._createid(task));
 };
 
 Q.prototype.push = function push(task, callback) {
-  async.waterfall([
-    _.bind(this.set, this, task, this._getid(task)), // convert task to id
-    _.bind(this.todo.push, this.todo)
-  ], callback);
+  var ref = this.ref(task);
+  async.parallel([
+    _.bind(this.set, this, task, ref),
+    _.bind(this.todo.push, this.todo, ref)
+  ], function (err, results) {
+    callback(err, results && results.length === 2 && results[1]);
+  });
 };
 
 Q.prototype.process = function process(callback) {
@@ -78,36 +90,54 @@ Q.prototype.bprocess = function bprocess(callback) {
 };
 
 Q.prototype.finish = function finish(task, callback) {
-  async.waterfall([
-    _.bind(this.set, this, task, this._getid(task)),
-    _.bind(this.doing.spullpipe, this.doing, this.done),
-    function (ret, cb) {
-      if (ret === 0) {
-        return cb(new Error('Element ' + task + ' is not currently processing.'));
-      }
-      cb(null, ret);
+  var ref = this.ref(task);
+  async.parallel([
+    _.bind(this.set, this, task, ref),
+    _.bind(this.doing.spullpipe, this.doing, this.done, ref)
+  ], function (err, results) {
+    if (err) {
+      return callback(err);
     }
-  ], callback);
+    if (results && results[1] === 0) {
+      return callback(new Error('Element ' + task + ' is not currently processing.'));
+    }
+    callback(null, results[1]);
+  });
 };
 
 Q.prototype.fail = function fail(task, callback) {
-  async.waterfall([
-    _.bind(this.set, this, task, this._getid(task)),
-    _.bind(this.doing.spullpipe, this.doing, this.failed),
-    function (ret, cb) {
-      if (ret === 0) {
-        return cb(new Error('Element ' + task + ' is not currently processing.'));
-      }
-      cb(null, ret);
+  var ref = this.ref(task);
+  async.parallel([
+    _.bind(this.set, this, task, ref),
+    _.bind(this.doing.spullpipe, this.doing, this.failed, ref)
+  ], function (err, results) {
+    if (err) {
+      return callback(err);
     }
-  ], callback);
+    if (results && results[1] === 0) {
+      return callback(new Error('Element ' + task + ' is not currently processing.'));
+    }
+    callback(null, results[1]);
+  });
 };
 
-Q.prototype.remove = function remove(from, taskobj, callback) {
-  async.waterfall([
-    _.bind(this.del, this, taskobj, this._getid(taskobj)),
-    _.bind(this[from].pull, this[from])
-  ], callback);
+Q.prototype.remove = function remove(from, task, dontdel, callback) {
+  if (callback === undefined) {
+    callback = dontdel;
+    dontdel = false;
+  }
+  var ref = this.ref(task);
+
+  if (dontdel) {
+    return this[from].pull(ref, callback);
+  }
+
+  async.parallel([
+    _.bind(this.del, this, task, ref),
+    _.bind(this[from].pull, this[from], ref)
+  ], function (err, results) {
+    callback(err, results && results.length === 2 && results[1]);
+  });
 };
 
 module.exports = Q;

@@ -34,18 +34,7 @@ function RedisStorage(redis, preopts) {
 
 util.inherits(RedisStorage, Q);
 
-// Override these to add a new serialization
-
-// @overridable
-RedisStorage.prototype.serialize = function (obj) {
-  return 'string';
-};
-
-// @overridable
-RedisStorage.prototype.deserialize = function (str) {
-  return {str:str};
-};
-
+RedisStorage.prototype.ref = Q.prototype._getid;
 
 RedisStorage.prototype._key = function (taskid) {
   return this._prefix + this._delimeter + taskid;
@@ -59,7 +48,7 @@ RedisStorage.prototype.get = function (taskid, callback) {
     }
 
     try {
-      callback(null, self.deserialize(result));
+      callback(null, result && self.deserialize(result));
     } catch (e) {
       callback(e);
     }
