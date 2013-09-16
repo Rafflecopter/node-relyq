@@ -69,24 +69,26 @@ function createTests(Q) {
   };
 
   function checkByStorageList(test, sQ, exp, ignore) {
+    var stack = new Error().stack;
     return function (callback) {
       async.waterfall([
         _.bind(sQ.list, sQ),
         function (list, cb) {
           async.map(list, function (ref, cb2) {
             Q.get(ref, function (err, obj) {
-              if (ignore && object) { delete object[ignore]; }
-              cb2(err, obj);
+              cb2(err, _.omit(obj, ignore));
             });
           }, cb);
         },
         function (list2, cb) {
-          test.deepEqual(list2, exp);
+          test.deepEqual(list2, exp, 'checkByStorageList: ' + stack);
           cb();
         }
       ], callback);
     };
   }
+
+  var InPlace = /^InPlace/.test(Q.constructor.name);
 
   // -- Tests --
 
@@ -99,7 +101,7 @@ function createTests(Q) {
         _.bind(Q.push, Q, task2),
         _.bind(Q.process, Q),
         _.bind(Q.process, Q),
-        _.bind(Q.fail, Q, task2, (/^InPlace/.test(Q.constructor.name) ? undefined : new Error('ahh!'))),
+        _.bind(Q.fail, Q, task2, (InPlace ? undefined : new Error('ahh!'))),
         _.bind(Q.finish, Q, task1),
         checkByStorageList(test, Q.todo, []),
         checkByStorageList(test, Q.doing, []),
@@ -117,7 +119,7 @@ function createTests(Q) {
         test.deepEqual(results[3], _.omit(task2, 'error'));
         test.deepEqual(_.last(results, 2)[0], task2);
 
-        if (!/^InPlace/.test(Q.constructor.name)) {
+        if (!InPlace) {
           test.equal(task2.error, 'Error: ahh!');
           test.deepEqual(_.last(results), null);
         } else {
@@ -133,6 +135,47 @@ function createTests(Q) {
       test.done(e);
     }
   };
+
+  if (!InPlace) {
+
+    tests.testListen = function (test) {
+      var i = 0,
+        atask1 = { id: '456', otherid: 'tucan', data: { hello: 'mother' }},
+        atask2 = { id: '654', otherid: 'sam', data: { goodbye: 'father' }};
+
+      var listener = Q.listen()
+        .on('error', test.ifError)
+        .on('task', function (task, done) {
+          test.deepEqual(task, _.clone(++i===1 ? atask1 : atask2));
+
+          var ndone = done;
+          if (i===2) {
+            ndone = function () {
+              done(new Error('omg'));
+            };
+          }
+          setTimeout(ndone, i*20);
+        })
+        .on('end', function () {
+          async.series([
+            checkByStorageList(test, Q.done, [atask1]),
+            checkByStorageList(test, Q.failed, [_.defaults(atask2, {error:'Error: omg'})]),
+          ], test.done);
+        });
+
+      async.series([
+        _.bind(Q.push, Q, atask1),
+        _.bind(Q.push, Q, atask2),
+        function (cb) {
+          setTimeout(cb, 30); // approx time to roundtrip local redis and wait for timeout
+        },
+        checkByStorageList(test, Q.done, [atask1]),
+      ], function (err) {
+        test.ifError(err);
+        listener.end();
+      });
+    };
+  }
 
   return tests;
 }
