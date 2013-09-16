@@ -106,12 +106,12 @@ Q.prototype.finish = function finish(task, dontCheckFailed, callback) {
 
     if (results && results[1] === 0) {
       if (dontCheckFailed) {
-        return callback(null, new Error('Element ' + task + ' is not currently processing.'));
+        return callback(null, new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing.'));
       }
 
 
       return self.failed.spullpipe(self.done, ref, function (err, result) {
-        callback(err || (result===0 && new Error('Element ' + task + ' is not currently processing or failed.')) || undefined, result);
+        callback(err || (result===0 && new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.')) || undefined, result);
       });
     }
 
@@ -119,7 +119,10 @@ Q.prototype.finish = function finish(task, dontCheckFailed, callback) {
   });
 };
 
-Q.prototype.fail = function fail(task, callback) {
+Q.prototype.fail = function fail(task, optional_error, callback) {
+  if (callback === undefined) callback = optional_error, optional_error = undefined;
+  if (optional_error) task.error = optional_error.toString();
+
   var ref = this.ref(task);
   async.parallel([
     _.bind(this.set, this, task, ref),
@@ -129,7 +132,7 @@ Q.prototype.fail = function fail(task, callback) {
       return callback(err);
     }
     if (results && results[1] === 0) {
-      return callback(new Error('Element ' + task + ' is not currently processing.'));
+      return callback(new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing.'));
     }
     callback(null, results[1]);
   });
@@ -152,6 +155,63 @@ Q.prototype.remove = function remove(from, task, dontdel, callback) {
   ], function (err, results) {
     callback(err, results && results.length === 2 && results[1]);
   });
+};
+
+// Start a process listener
+/*
+Example Usage
+
+    var listener = rq.listen({
+      timeout: 2, // seconds
+      max_out: 10, // maximum tasks to emit at one time
+    })
+      .on('error', function (err, optional_taskref) {
+        if (taskref) {...}
+        else {...}
+      })
+      .on('task', function (task, done) {
+        // do task
+        done(error_or_not); // This will call rq.fail or rq.finish!
+      });
+
+    // some time later
+    listener.end();
+*/
+Q.prototype.listen = function rqlistener(opts) {
+  var rq = this,
+    sql = rq.todo.poppipelisten(rq.doing, opts);
+
+
+  sql.on('message', function (taskref, done) {
+    async.waterfall([
+      _.bind(rq.get, rq, taskref),
+      function (taskobj, cb) {
+        function ondone (err) {
+          if (err) {
+            sql.emit('error', err, taskref);
+          }
+          done();
+        }
+
+        function newdone (err) {
+          if (err) {
+            rq.fail(taskobj, err, ondone);
+          } else {
+            rq.finish(taskobj, ondone);
+          }
+        }
+
+        sql.emit('task', taskobj, newdone);
+        cb();
+      }
+    ], function (err) {
+      if (err) {
+        sql.emit('error', err, taskref);
+      }
+    });
+  });
+
+  return sql;
 };
 
 module.exports = Q;

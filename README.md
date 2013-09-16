@@ -4,7 +4,7 @@ A realtively simple Redis-backed reliable task queue and state machine.
 
 Its made up of four [simpleq](https://github.com/yanatan16/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
 
-_Note_: relyq assumes all tasks are different, specifically that they have unique IDs. relyq will create an ID using uuid v4 if no id is found (using the idfield option on `new Q(redis, options)` or `'id'`).
+_Note_: relyq assumes all tasks are different, specifically that they have unique IDs. relyq can create these using the `.getid` function, but that is not its original intent. Also, relyq is meant to work with tasks that are objects. If you wish to represent tasks as other things, it should work, but advanced options won't be available to you.
 
 ## Operation
 
@@ -47,9 +47,34 @@ Operations:
 - `q.process(function (err, task) {...})` Pop off the next task to process. May return null.
     - `q.bprocess([timeout,] function (err, task) {...})` A blocking version of process, will never return null unless timeout occurs. Timeout is an integer number of seconds.
 - `q.finish(task, [dontCheckFailed, ] function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `done` queue. If it doesn't exist in `doing`, it is possible you might have moved it to `failed` for a timeout, so we also check for the task in the `failed` queue. An error is passed if the task does not exist in the in either queue. Pass true as the second parameter if you don't wish to check the `failed` queue for the task should it not exist in `doing`.
-- `q.fail(task, function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `failed` queue. An error is passed if the task does not exist in the in the queue.
+- `q.fail(task, [error,] function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `failed` queue. An error is passed if the task does not exist in the in the queue. If an error is passed in, it is attached to the task on the `.error` field.
 - `q.remove(subqueue, task, function (err) {...})` Remove a task from a certain subqueue. The subqueues are `todo`, `doing`, `done`, and `failed`. This will also remove the task from storage.
   - If you don't want to remove the task from storage but want to eliminate it from the queue, you can call the function like `q.remove(subqueue, task, true, callback);`
+
+Processing Listener:
+
+By far the easiest way to listen for jobs is to use the listener feature.
+
+```javascript
+var listener = rq.listen({
+    timeout: 2, // seconds
+    max_out: 10, // maximum tasks to emit at one time
+  })
+  .on('error', function (err, optional_taskref) {
+    if (taskref) {...}
+    else {...}
+  })
+  .on('task', function (task, done) {
+    // do task
+    done(error_or_not); // This will call rq.fail or rq.finish!
+  })
+  .on('end', function () {
+    // this is when we really end
+  });
+
+// some time later
+listener.end(); // notify to wait for all tasks to done(), then end
+```
 
 ## Tests
 
@@ -70,6 +95,8 @@ In-place solutions simply serialize task objects and store them in the queue dir
 - `new relyq.InPlaceBasicQ(redis, opts)` doesn't even do serialization.
 - `new relyq.InPlaceJsonQ(redis, opts)` serializes using JSON (fast serialization, more space)
 - `new relyq.InPlaceMsgPackQ(redis, opts)` serializes using MsgPack (slower serialization, less space)
+
+_Note_: In-Place serializations don't allow you to change the task object once it has been pushed into the system. Hence, its not that useful.
 
 ### Redis
 

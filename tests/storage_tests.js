@@ -99,7 +99,7 @@ function createTests(Q) {
         _.bind(Q.push, Q, task2),
         _.bind(Q.process, Q),
         _.bind(Q.process, Q),
-        _.bind(Q.fail, Q, task2),
+        _.bind(Q.fail, Q, task2, (/^InPlace/.test(Q.constructor.name) ? undefined : new Error('ahh!'))),
         _.bind(Q.finish, Q, task1),
         checkByStorageList(test, Q.todo, []),
         checkByStorageList(test, Q.doing, []),
@@ -114,10 +114,11 @@ function createTests(Q) {
       ], function (err, results) {
         test.ifError(err);
         test.deepEqual(results[2], task1);
-        test.deepEqual(results[3], task2);
+        test.deepEqual(results[3], _.omit(task2, 'error'));
         test.deepEqual(_.last(results, 2)[0], task2);
 
         if (!/^InPlace/.test(Q.constructor.name)) {
+          test.equal(task2.error, 'Error: ahh!');
           test.deepEqual(_.last(results), null);
         } else {
           test.deepEqual(_.last(results), task1);

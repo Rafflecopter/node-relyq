@@ -90,7 +90,7 @@ tests.testBprocess = function (test) {
         test.ifError(err);
         test.equal(res, null);
         var time = new Date() - start;
-        test.ok(time > 1999 && time < 5000, 'Time is not in 2s range ' + time);
+        test.ok(time > 1900 && time < 5000, 'Time is not in 2s range ' + time);
         cb();
       });
     },
@@ -175,4 +175,34 @@ tests.testRemoveFrom = function (test) {
     checkByList(test, Q.doing, []),
     checkByList(test, Q.todo, [])
   ], test.done);
+};
+
+tests.testListen = function (test) {
+  var listener = Q.listen()
+    .on('error', test.ifError)
+    .on('task', function (task, done) {
+      test.ok(/^hello2?$/.test(task));
+      checkByList(test, Q.doing, [task])(test.ifError);
+
+      if (task === 'hello') {
+        done();
+      } else {
+        setTimeout(done, 20);
+      }
+    })
+    .on('end', function () {
+      checkByList(test, Q.done, ['hello2', 'hello'])(test.done);
+    });
+
+  async.series([
+    _.bind(Q.push, Q, 'hello'),
+    function (cb) {
+      setTimeout(cb, 10); // approx time to roundtrip local redis
+    },
+    checkByList(test, Q.done, ['hello']),
+    _.bind(Q.push, Q, 'hello2'),
+  ], function (err) {
+    test.ifError(err);
+    listener.end();
+  });
 };
