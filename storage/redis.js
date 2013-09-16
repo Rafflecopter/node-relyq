@@ -25,11 +25,10 @@ var Q = require('../relyq');
 // -- Main Type --
 // Redis Storage Backend
 function RedisStorage(redis, preopts) {
-  this._redis = redis;
-  this._prefix = preopts.storage_prefix || ((preopts.prefix || preopts) + this._delimeter + 'jobs');
-  this._delimeter = preopts.delimeter || ':';
-
   Q.call(this, redis, preopts);
+
+  this._redis = redis;
+  this._storage_prefix = preopts.storage_prefix || ((preopts.prefix || preopts) + this._delimeter + 'jobs');
 }
 
 util.inherits(RedisStorage, Q);
@@ -39,7 +38,7 @@ RedisStorage.prototype.ref = function (task) {
 };
 
 RedisStorage.prototype._key = function (taskid) {
-  return this._prefix + this._delimeter + taskid;
+  return this._storage_prefix + this._delimeter + taskid;
 };
 
 RedisStorage.prototype.get = function (taskid, callback) {

@@ -29,10 +29,10 @@ function Q(redis, preopts) {
 
   this._prefix = preopts.prefix || preopts;
 
-  this.todo = new simpleq.Q(redis, this._prefix + ':todo');
-  this.doing = new simpleq.Q(redis, this._prefix + ':doing');
-  this.failed = new simpleq.Q(redis, this._prefix + ':failed');
-  this.done = new simpleq.Q(redis, this._prefix + ':done');
+  this.todo = new simpleq.Q(redis, this._prefix + this._delimeter + 'todo');
+  this.doing = new simpleq.Q(redis, this._prefix + this._delimeter + 'doing');
+  this.failed = new simpleq.Q(redis, this._prefix + this._delimeter + 'failed');
+  this.done = new simpleq.Q(redis, this._prefix + this._delimeter + 'done');
 }
 
 // @overridable
