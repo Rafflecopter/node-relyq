@@ -82,9 +82,14 @@ Q.prototype.process = function process(callback) {
   ], callback);
 };
 
-Q.prototype.bprocess = function bprocess(callback) {
+Q.prototype.bprocess = function bprocess(timeout, callback) {
+  if (callback === undefined) {
+    callback = timeout;
+    timeout = 0;
+  }
+
   async.waterfall([
-    _.bind(this.todo.bpoppipe, this.todo, this.doing),
+    _.bind(this.todo.bpoppipe, this.todo, this.doing, timeout),
     _.bind(this.get, this)
   ], callback);
 };

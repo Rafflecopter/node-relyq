@@ -84,6 +84,16 @@ tests.testProcess = function (test) {
 
 tests.testBprocess = function (test) {
   async.series([
+    function (cb) {
+      var start = new Date();
+      Q.bprocess(2, function (err, res) {
+        test.ifError(err);
+        test.equal(res, null);
+        var time = new Date() - start;
+        test.ok(time > 1999 && time < 5000, 'Time is not in 2s range ' + time);
+        cb();
+      });
+    },
     _.bind(async.parallel, null, [
       _.bind(Q.bprocess, Q),
       _.bind(Qc.push, Qc, 'happy-days'),
@@ -95,8 +105,8 @@ tests.testBprocess = function (test) {
     checkByList(test, Q.doing, ['television', 'happy-days'])
   ], function (err, results) {
     test.ifError(err);
-    test.equal(results[0][0], 'happy-days');
-    test.equal(results[1], 'television');
+    test.equal(results[1][0], 'happy-days');
+    test.equal(results[2], 'television');
     test.done();
   });
 };
