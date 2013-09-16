@@ -144,11 +144,19 @@ tests.testsFinishFailBoth = function (test) {
   async.series([
     _.bind(Q.push, Q, 'job'),
     _.bind(Q.process, Q),
-    _.bind(Q.fail, Q, 'job')
+    _.bind(Q.fail, Q, 'job'),
+    checkByList(test, Q.done, []),
+    checkByList(test, Q.failed, ['job']),
+    _.bind(Q.finish, Q, 'job', true),
+    checkByList(test, Q.done, []),
+    checkByList(test, Q.failed, ['job']),
+    _.bind(Q.finish, Q, 'job'),
+    checkByList(test, Q.done, ['job']),
+    checkByList(test, Q.failed, []),
   ], function (err, results) {
     test.ifError(err);
     test.equal(results[2], 1);
-    Q.finish('job', function (err) {
+    Q.finish('job-nothere', function (err) {
       test.ok(err instanceof Error);
       test.done();
     });

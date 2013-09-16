@@ -46,8 +46,8 @@ Operations:
 - `q.push(task, function (err, todo_len) {...})`
 - `q.process(function (err, task) {...})` Pop off the next task to process. May return null.
     - `q.bprocess([timeout,] function (err, task) {...})` A blocking version of process, will never return null unless timeout occurs. Timeout is an integer number of seconds.
-- `q.finish(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
-- `q.fail(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
+- `q.finish(task, [dontCheckFailed, ] function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `done` queue. If it doesn't exist in `doing`, it is possible you might have moved it to `failed` for a timeout, so we also check for the task in the `failed` queue. An error is passed if the task does not exist in the in either queue. Pass true as the second parameter if you don't wish to check the `failed` queue for the task should it not exist in `doing`.
+- `q.fail(task, function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `failed` queue. An error is passed if the task does not exist in the in the queue.
 - `q.remove(subqueue, task, function (err) {...})` Remove a task from a certain subqueue. The subqueues are `todo`, `doing`, `done`, and `failed`. This will also remove the task from storage.
   - If you don't want to remove the task from storage but want to eliminate it from the queue, you can call the function like `q.remove(subqueue, task, true, callback);`
 

@@ -91,18 +91,30 @@ Q.prototype.bprocess = function bprocess(timeout, callback) {
   ], callback);
 };
 
-Q.prototype.finish = function finish(task, callback) {
-  var ref = this.ref(task);
+Q.prototype.finish = function finish(task, dontCheckFailed, callback) {
+  if (callback === undefined) callback = dontCheckFailed, dontCheckFailed = false;
+
+  var ref = this.ref(task),
+    self = this;
   async.parallel([
     _.bind(this.set, this, task, ref),
-    _.bind(this.doing.spullpipe, this.doing, this.done, ref)
+    _.bind(this.doing.spullpipe, this.doing, this.done, ref),
   ], function (err, results) {
     if (err) {
       return callback(err);
     }
+
     if (results && results[1] === 0) {
-      return callback(new Error('Element ' + task + ' is not currently processing.'));
+      if (dontCheckFailed) {
+        return callback(null, new Error('Element ' + task + ' is not currently processing.'));
+      }
+
+
+      return self.failed.spullpipe(self.done, ref, function (err, result) {
+        callback(err || (result===0 && new Error('Element ' + task + ' is not currently processing or failed.')) || undefined, result);
+      });
     }
+
     callback(null, results[1]);
   });
 };
