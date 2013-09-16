@@ -193,7 +193,13 @@ Q.prototype.listen = function rqlistener(opts) {
           done();
         }
 
+        var called = false;
         function newdone (err) {
+          if (called) {
+            return;
+          }
+          called = true;
+
           if (err) {
             rq.fail(taskobj, err, ondone);
           } else {

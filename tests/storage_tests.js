@@ -1,5 +1,5 @@
 // storage_test.js
-// require('longjohn').async_trace_limit = -1;
+require('longjohn').async_trace_limit = -1;
 
 // vendor
 var redis = require('redis').createClient(),
@@ -153,6 +153,8 @@ function createTests(Q) {
             ndone = function () {
               done(new Error('omg'));
             };
+          } else {
+            setTimeout(function () { done(); test.equal(listener._out, 1); }, 30);
           }
           setTimeout(ndone, i*20);
         })

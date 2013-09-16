@@ -67,6 +67,7 @@ var listener = rq.listen({
   .on('task', function (task, done) {
     // do task
     done(error_or_not); // This will call rq.fail or rq.finish!
+                        // Its safe to call twice
   })
   .on('end', function () {
     // this is when we really end
