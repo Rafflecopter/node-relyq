@@ -34,15 +34,18 @@ Options:
 - `prefix: 'my-relyq'` (required) - The redis key prefix for the sub-queues.
 - `delimeter: '|'` (default: ':') - The redis key delimeter for the sub-queues.
 - `idfield: 'tid'` (default: 'id') - The field of the task objects where the ID can be found.
-- `ensureid: true` (default: false) - If true, relyq will create an ID on the idfield if one does not already exist.
-- `createid: function (task) { return ... }` (default `uuid.v4()`) - The function used to create new IDs (strings). The task object is the first argument.
+- `getid: function (task) { return task[idfield] }` - A function to retrieve the id from a task.
+  - You can also use this function to create ids for tasks that are missing them like so:
+  ```
+  getid: function (task) { return task.idfield = task.idfield || createid(); }
+  ```
 - `storage_prefix: 'my-relyq:jobs'` (default: prefix + delimeter + 'jobs'; only necessary for Redis-backed Storage)
 
 Operations:
 
 - `q.push(task, function (err, todo_len) {...})`
 - `q.process(function (err, task) {...})` Pop off the next task to process. May return null.
-    - `q.bprocess(function (err, task) {...})` A blocking version of process, will never return null.
+    - `q.bprocess([timeout,] function (err, task) {...})` A blocking version of process, will never return null unless timeout occurs. Timeout is an integer number of seconds.
 - `q.finish(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
 - `q.fail(task, function (err, finish_len) {...})` An error is passed if the task does not exist in the in process queue.
 - `q.remove(subqueue, task, function (err) {...})` Remove a task from a certain subqueue. The subqueues are `todo`, `doing`, `done`, and `failed`. This will also remove the task from storage.
@@ -82,7 +85,7 @@ The Mongo backend stores task objects in Mongo. It requires a mongo connection A
 ```
 var mongo = require('mongodb'),
   mongoClient = new mongo.MongoClient(new mongo.Server('my-server.com', 27017)),
-  q = new relyq.MongoQ(redisClient, { mongo: mongoClient, prefix: 'my-relyq', db: 'mydb', collection: 'my.favorite.collection' });
+  q = new relyq.MongoQ(redisClient, { mongo: mongoClient, prefix: 'my-relyq', db: 'mydb', collection: 'my.favorite.collection', idfield: '_id' });
 ```
 
 The three extra options are:
@@ -90,6 +93,8 @@ The three extra options are:
 - `mongo: mongoClient` (required) A MongoClient from `mongodb` package
 - `db: myapp` (default: 'test') A db to connect to
 - `collection: relyq` (default: 'relyq.jobs') Collection to use as job storage
+
+_Note_: If `opts.idfield` is not set to `_id`, you may need to add an index to the collection: `.ensureIndex({idfield: 1}, {unique: true});`
 
 ## License
 

@@ -5,8 +5,7 @@
 var async = require('async'),
   _ = require('underscore'),
   redisPkg = require('redis'),
-  simpleq = require('simpleq'),
-  uuid = require('uuid');
+  simpleq = require('simpleq');
 
 // -- Master Type: Q --
 // The master type, a task queue
@@ -18,14 +17,16 @@ function Q(redis, preopts) {
 
   var Constructor = this.constructor;
   this.clone = this.clone || function () {
-    console.log('cloning', Constructor.name);
     return new Constructor(redisPkg.createClient(redis.port, redis.host, redis.options), preopts);
   };
 
   this._delimeter = preopts.delimeter || ':';
-  this._idfield = preopts.idfield || 'id';
-  this._createid = preopts.createid || uuid.v4;
-  this._ensureid = preopts.ensureid || false;
+
+  var idfield = this._idfield = preopts.idfield || 'id';
+  this._getid = preopts.getid || function (task) {
+    return task[idfield];
+  };
+
   this._prefix = preopts.prefix || preopts;
 
   this.todo = new simpleq.Q(redis, this._prefix + ':todo');
@@ -60,10 +61,6 @@ Q.prototype.ref = function (obj) {
 };
 
 // -- Superclass methods ---
-
-Q.prototype._getid = function getid(task) {
-  return task[this._idfield] = task[this._idfield] || (this._ensureid && this._createid(task));
-};
 
 Q.prototype.push = function push(task, callback) {
   var ref = this.ref(task);

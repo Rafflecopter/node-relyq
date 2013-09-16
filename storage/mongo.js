@@ -32,31 +32,28 @@ function MongoStorage(redis, opts) {
     return new MongoStorage(redis, opts);
   }
   this._mongo = opts.mongo.db(opts.db || 'test').collection(opts.collection || 'relyq');
-  if (opts.ensureid) {
-    opts.idfield = opts.idfield || '_id';
-    opts.createid = opts.createid || function () { return new ObjectId().toString(); };
-  }
 
   Q.call(this, redis, opts);
 }
 
 util.inherits(MongoStorage, Q);
 
-MongoStorage.prototype.ref = Q.prototype._getid;
+MongoStorage.prototype.ref = function (task) {
+  return this._getid(task);
+};
 
 MongoStorage.prototype.get = function (taskid, callback) {
-  this._mongo.findOne({_id: taskid}, callback);
+  this._mongo.findOne(_.object([this._idfield],[taskid]), callback);
 };
 
 MongoStorage.prototype.set = function (taskobj, taskid, callback) {
-  taskobj._id = (taskobj._id || taskid).toString();
   this._mongo.save(taskobj, function (err) {
     callback(err, taskid);
   });
 };
 
 MongoStorage.prototype.del = function (taskobj, taskid, callback) {
-  this._mongo.remove({_id: taskid}, function (err) {
+  this._mongo.remove(_.object([this._idfield],[taskid]), function (err) {
     callback(err, taskid);
   });
 };

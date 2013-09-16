@@ -34,7 +34,9 @@ function RedisStorage(redis, preopts) {
 
 util.inherits(RedisStorage, Q);
 
-RedisStorage.prototype.ref = Q.prototype._getid;
+RedisStorage.prototype.ref = function (task) {
+  return this._getid(task);
+};
 
 RedisStorage.prototype._key = function (taskid) {
   return this._prefix + this._delimeter + taskid;

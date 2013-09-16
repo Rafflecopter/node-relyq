@@ -7,7 +7,8 @@ var redis = require('redis').createClient(),
   async = require('async'),
   _ = require('underscore')
   mongo = require('mongodb'),
-  mongoClient = new mongo.MongoClient(new mongo.Server('localhost', 27017));
+  mongoClient = new mongo.MongoClient(new mongo.Server('localhost', 27017)),
+  uuid = require('uuid');
 
 mongoClient.open(function (err, mc) {
   if (err) {
@@ -17,7 +18,8 @@ mongoClient.open(function (err, mc) {
 });
 
 // local
-var relyq = require('..');
+var relyq = require('..'),
+  count = counter();
 
 // Storages to test
 var storages = {
@@ -26,13 +28,13 @@ var storages = {
   'RedisJson': new relyq.RedisJsonQ(redis, prefix('RedisJson')),
   'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs') }),
   'RedisMsgPack': new relyq.RedisMsgPackQ(redis, prefix('MsgPackJson')),
-  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo') }),
-  'MongoEnsure': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.jobs', prefix: prefix('Mongo'), ensureid: true }),
-  'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', ensureid: true /* fails with false */}),
-  'CreateId2': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId2'), idfield: 'omgid', ensureid: true, createid: counter() }),
+  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo') }),
+  'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
+  'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
+    getid: function (t) { return t.omgid = t.omgid || count(); }}),
   'Clone': new relyq.InPlaceJsonQ(redis, prefix('Clone')).clone(),
   'CloneRedis': new relyq.RedisJsonQ(redis, prefix('CloneRedis')).clone(),
-  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.jobs'}).clone(),
+  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.'+Moniker.choose()+'.jobs'}).clone(),
 }
 
 _.each(storages, function (q, name) {
