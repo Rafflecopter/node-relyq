@@ -1,7 +1,7 @@
 {
   "name": "relyq",
   "description": "A reliable redis-backed queue.",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "author": "Jon Eisen <jon@metricfeat.com>",
   "scripts": {
     "test": "nodeunit tests"
