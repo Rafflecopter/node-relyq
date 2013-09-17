@@ -194,6 +194,9 @@ function createTests(Q) {
 
       async.series([
         _.bind(Q.push, Q, atask1),
+        function (cb) {
+          setTimeout(cb, 10);
+        },
         _.bind(Q.push, Q, atask2),
         function (cb) {
           setTimeout(cb, 30); // approx time to roundtrip local redis and wait for timeout
