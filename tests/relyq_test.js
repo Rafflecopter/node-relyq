@@ -147,7 +147,12 @@ tests.testsFinishFailBoth = function (test) {
     _.bind(Q.fail, Q, 'job'),
     checkByList(test, Q.done, []),
     checkByList(test, Q.failed, ['job']),
-    _.bind(Q.finish, Q, 'job', true),
+    function (cb) {
+      Q.finish('job', true, function (err) {
+        test.ok(err instanceof Error);
+        cb();
+      });
+    },
     checkByList(test, Q.done, []),
     checkByList(test, Q.failed, ['job']),
     _.bind(Q.finish, Q, 'job'),

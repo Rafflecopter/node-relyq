@@ -96,26 +96,28 @@ Q.prototype.finish = function finish(task, dontCheckFailed, callback) {
 
   var ref = this.ref(task),
     self = this;
-  async.parallel([
-    _.bind(this.set, this, task, ref),
-    _.bind(this.doing.spullpipe, this.doing, this.done, ref),
-  ], function (err, results) {
-    if (err) {
-      return callback(err);
-    }
 
-    if (results && results[1] === 0) {
-      if (dontCheckFailed) {
-        return callback(null, new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing.'));
+  async.auto({
+    setTask: _.bind(this.set, this, task, ref),
+    sPullPipe: _.bind(this.doing.spullpipe, this.doing, this.done, ref),
+    checkFailed: ['sPullPipe', function (cb, results) {
+      if (results.sPullPipe === 0) {
+        if (dontCheckFailed) {
+          return cb(null, 0);
+        }
+
+        return self.failed.spullpipe(self.done, ref, cb);
       }
-
-
-      return self.failed.spullpipe(self.done, ref, function (err, result) {
-        callback(err || (result===0 && new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.')) || undefined, result);
-      });
-    }
-
-    callback(null, results[1]);
+      cb(null, results.sPullPipe);
+    }],
+    last: ['checkFailed', function (cb, results) {
+      if (results.checkFailed === 0) {
+        return callback(new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.'));
+      }
+      callback(null);
+    }]
+  }, function (err, results) {
+    callback(err, results.checkFailed);
   });
 };
 
