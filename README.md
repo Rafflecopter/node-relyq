@@ -1,8 +1,8 @@
 # relyq [![Build Status][1]][2]
 
-A realtively simple Redis-backed reliable task queue and state machine.
+A relatively simple Redis-backed reliable task queue and state machine.
 
-Its made up of four [simpleq](https://github.com/yanatan16/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
+Its made up of four [simpleq](https://github.com/Rafflecopter/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
 
 _Note_: relyq assumes all tasks are different, specifically that they have unique IDs. relyq can create these using the `.getid` function, but that is not its original intent. Also, relyq is meant to work with tasks that are objects. If you wish to represent tasks as other things, it should work, but advanced options won't be available to you.
 
@@ -130,5 +130,5 @@ _Note_: If `opts.idfield` is not set to `_id`, you may need to add an index to t
 
 See LICENSE file.
 
-[1]: https://travis-ci.org/yanatan16/node-relyq.png?branch=master
-[2]: http://travis-ci.org/yanatan16/node-relyq
+[1]: https://travis-ci.org/Rafflecopter/node-relyq.png?branch=master
+[2]: http://travis-ci.org/Rafflecopter/node-relyq

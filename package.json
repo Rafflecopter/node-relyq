@@ -1,7 +1,7 @@
 {
   "name": "relyq",
   "description": "A reliable redis-backed queue.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "author": "Jon Eisen <jon@metricfeat.com>",
   "scripts": {
     "test": "nodeunit tests"
@@ -13,7 +13,7 @@
     "distributed",
     "redis"
   ],
-  "repository": "git://github.com/yanatan16/node-relyq.git",
+  "repository": "git://github.com/Rafflecopter/node-relyq.git",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
