@@ -23,18 +23,18 @@ var relyq = require('..'),
 
 // Storages to test
 var storages = {
-  'InPlaceJson': new relyq.InPlaceJsonQ(redis, prefix('InPlaceJson')),
-  'MsgPackInPlace': new relyq.InPlaceMsgPackQ(redis, prefix('MsgPackJson')),
-  'RedisJson': new relyq.RedisJsonQ(redis, prefix('RedisJson')),
-  'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs') }),
-  'RedisMsgPack': new relyq.RedisMsgPackQ(redis, prefix('MsgPackJson')),
-  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo') }),
-  'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
-  'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
+  'InPlaceJson': new relyq.InPlaceJsonQ(redis, {prefix:prefix('InPlaceJson'),clean_finish:false}),
+  'MsgPackInPlace': new relyq.InPlaceMsgPackQ(redis, {prefix:prefix('MsgPackJson'),clean_finish:false}),
+  'RedisJson': new relyq.RedisJsonQ(redis, {prefix:prefix('RedisJson'),clean_finish:false}),
+  'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs'), clean_finish:false }),
+  'RedisMsgPack': new relyq.RedisMsgPackQ(redis, {clean_finish:false,prefix:prefix('MsgPackJson')}),
+  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo'), clean_finish:false }),
+  'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
+  'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
     getid: function (t) { return t.omgid = t.omgid || count(); }}),
-  'Clone': new relyq.InPlaceJsonQ(redis, prefix('Clone')).clone(),
-  'CloneRedis': new relyq.RedisJsonQ(redis, prefix('CloneRedis')).clone(),
-  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.'+Moniker.choose()+'.jobs'}).clone(),
+  'Clone': new relyq.InPlaceJsonQ(redis, {prefix:prefix('Clone'),clean_finish:false}).clone(),
+  'CloneRedis': new relyq.RedisJsonQ(redis, {prefix:prefix('CloneRedis'),clean_finish:false}).clone(),
+  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, clean_finish: false, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.'+Moniker.choose()+'.jobs'}).clone(),
 }
 
 _.each(storages, function (q, name) {
@@ -52,6 +52,10 @@ exports.cleanUp = function cleanUp (test) {
   });
 };
 
+// If we are getting a test.done complaint, turn this on. It helps find errors
+process.on('uncaughtException', function (err) {
+  console.error(err.stack);
+});
 
 function createTests(Q) {
   var tests = {};
@@ -95,16 +99,19 @@ function createTests(Q) {
   tests.testFull = function (test) {
     try {
       var task1 = { id: '123', otherid: 'cachoa!', data: { hello: 'dolly' }},
-        task2 = { id: '321', otherid: '?augment', data: { goodbye: 'dolly' }};
+        task2 = { id: '321', otherid: '?augment', data: { goodbye: 'dolly' }},
+        task3 = { id: '213', otherid: 'blahblah', data: {something: 'else' }};
       async.series([
         _.bind(Q.push, Q, task1),
         _.bind(Q.push, Q, task2),
+        _.bind(Q.push, Q, task3),
+        _.bind(Q.process, Q),
         _.bind(Q.process, Q),
         _.bind(Q.process, Q),
         _.bind(Q.fail, Q, task2, (InPlace ? undefined : new Error('ahh!'))),
         _.bind(Q.finish, Q, task1),
         checkByStorageList(test, Q.todo, []),
-        checkByStorageList(test, Q.doing, []),
+        checkByStorageList(test, Q.doing, [task3]),
         checkByStorageList(test, Q.done, [task1]),
         checkByStorageList(test, Q.failed, [task2]),
         _.bind(Q.remove, Q, 'done', task1),
@@ -112,19 +119,39 @@ function createTests(Q) {
         checkByStorageList(test, Q.done, []),
         checkByStorageList(test, Q.failed, []),
         _.bind(Q.get, Q, Q.ref(task2)),
-        _.bind(Q.get, Q, Q.ref(task1))
+        _.bind(Q.get, Q, Q.ref(task1)),
+        function (cb) {
+          Q._clean_finish = true;
+          Q._keep_storage = true;
+          cb();
+        },
+        _.bind(Q.finish, Q, task3),
+        checkByStorageList(test, Q.done, []),
+        function (cb) {
+          Q.get(Q.ref(task3), function (err, obj) {
+            test.ifError(err);
+            test.deepEqual(_.omit(obj,'_id'), _.omit(task3,'_id'));
+            cb();
+          });
+        },
+        function (cb) {
+          Q._clean_finish = false;
+          Q._keep_storage = false;
+          cb();
+        }
       ], function (err, results) {
         test.ifError(err);
-        test.deepEqual(results[2], task1);
-        test.deepEqual(results[3], _.omit(task2, 'error'));
-        test.deepEqual(_.last(results, 2)[0], task2);
+        test.deepEqual(results[3], task1);
+        test.deepEqual(results[4], _.omit(task2, 'error'));
+        test.deepEqual(results[16], task2);
 
         if (!InPlace) {
           test.equal(task2.error, 'Error: ahh!');
-          test.deepEqual(_.last(results), null);
+          test.deepEqual(results[17], null);
         } else {
-          test.deepEqual(_.last(results), task1);
+          test.deepEqual(results[17], task1);
         }
+
 
         Q.finish(task2, function (err) {
           test.ok(err instanceof Error);

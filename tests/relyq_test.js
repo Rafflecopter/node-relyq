@@ -15,8 +15,8 @@ var tests = exports.tests = {},
   Q, Qc;
 
 tests.setUp = function setUp (callback) {
-  Q = new relyq.Q(redis, 'relyq-test:' + Moniker.choose());
-  Qc = new relyq.Q(redis2, Q._prefix);
+  Q = new relyq.Q(redis, {prefix: 'relyq-test:' + Moniker.choose(), clean_finish: false});
+  Qc = new relyq.Q(redis2, {clean_finish: false, prefix: Q._prefix});
   callback();
 };
 
@@ -122,6 +122,22 @@ tests.testFinish = function (test) {
     checkByList(test, Q.todo, ['argument']),
     checkByList(test, Q.doing, ['else']),
     checkByList(test, Q.done, ['something'])
+  ], test.done);
+};
+
+
+tests.testCleanFinish = function (test) {
+  Q._clean_finish = true; // usually an option
+  async.series([
+    _.bind(Q.push, Q, 'something'),
+    _.bind(Q.push, Q, 'else'),
+    _.bind(Q.push, Q, 'argument'),
+    _.bind(Q.process, Q),
+    _.bind(Q.finish, Q, 'something'),
+    _.bind(Q.process, Q),
+    checkByList(test, Q.todo, ['argument']),
+    checkByList(test, Q.doing, ['else']),
+    checkByList(test, Q.done, [])
   ], test.done);
 };
 

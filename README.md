@@ -32,6 +32,7 @@ var q = new Q(cli, options);
 Options:
 
 - `prefix: 'my-relyq'` (required) - The redis key prefix for the sub-queues.
+- `clean_finish: false` (default: true) - _IMPORTANT_ Clean finish will not store tasks that are completed without error. They will be immediately deleted from the queue and the storage backend. This saves Redis memory. If you wish to keep your documents in storage (a good idea with Mongo storage), but remove them from the queue, set `clean_finish: 'keep_storage'`.
 - `delimeter: '|'` (default: ':') - The redis key delimeter for the sub-queues.
 - `idfield: 'tid'` (default: 'id') - The field of the task objects where the ID can be found.
 - `getid: function (task) { return task[idfield] }` - A function to retrieve the id from a task.
@@ -39,7 +40,8 @@ Options:
   ```
   getid: function (task) { return task.idfield = task.idfield || createid(); }
   ```
-- `storage_prefix: 'my-relyq:jobs'` (default: prefix + delimeter + 'jobs'; only necessary for Redis-backed Storage)
+
+See below for storage-specific options...
 
 Operations:
 

@@ -28,11 +28,15 @@ function Q(redis, preopts) {
   };
 
   this._prefix = preopts.prefix || preopts;
+  this._clean_finish = preopts.clean_finish === undefined || preopts.clean_finish;
+  this._keep_storage = preopts.clean_finish === 'keep_storage';
 
   this.todo = new simpleq.Q(redis, this._prefix + this._delimeter + 'todo');
   this.doing = new simpleq.Q(redis, this._prefix + this._delimeter + 'doing');
   this.failed = new simpleq.Q(redis, this._prefix + this._delimeter + 'failed');
-  this.done = new simpleq.Q(redis, this._prefix + this._delimeter + 'done');
+  if (!this._clean_finish) {
+    this.done = new simpleq.Q(redis, this._prefix + this._delimeter + 'done');
+  }
 }
 
 // @overridable
@@ -91,35 +95,14 @@ Q.prototype.bprocess = function bprocess(timeout, callback) {
   ], callback);
 };
 
-Q.prototype.finish = function finish(task, dontCheckFailed, callback) {
-  if (callback === undefined) callback = dontCheckFailed, dontCheckFailed = false;
-
-  var ref = this.ref(task),
-    self = this;
-
-  async.auto({
-    setTask: _.bind(this.set, this, task, ref),
-    sPullPipe: _.bind(this.doing.spullpipe, this.doing, this.done, ref),
-    checkFailed: ['sPullPipe', function (cb, results) {
-      if (results.sPullPipe === 0) {
-        if (dontCheckFailed) {
-          return cb(null, 0);
-        }
-
-        return self.failed.spullpipe(self.done, ref, cb);
-      }
-      cb(null, results.sPullPipe);
-    }],
-    last: ['checkFailed', function (cb, results) {
-      if (results.checkFailed === 0) {
-        return callback(new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.'));
-      }
-      callback(null);
-    }]
-  }, function (err, results) {
-    callback(err, results.checkFailed);
-  });
+Q.prototype.finish = function finish() {
+  if (this._clean_finish) {
+    this._finish_clean.apply(this, arguments);
+  } else {
+    this._finish_dirty.apply(this, arguments);
+  }
 };
+
 
 Q.prototype.fail = function fail(task, optional_error, callback) {
   if (callback === undefined) callback = optional_error, optional_error = undefined;
@@ -223,3 +206,65 @@ Q.prototype.listen = function rqlistener(opts) {
 };
 
 module.exports = Q;
+
+// -- Finish Helpers --
+
+Q.prototype._finish_clean = function finish_clean(task, dontCheckFailed, callback) {
+  if (callback === undefined) callback = dontCheckFailed, dontCheckFailed = false;
+
+  var ref = this.ref(task),
+    self = this;
+
+  async.auto({
+    setTask: _.bind(this._keep_storage ? this.set : this.del, this, task, ref),
+    sPullPipe: _.bind(this.doing.pull, this.doing, ref),
+    checkFailed: ['sPullPipe', function (cb, results) {
+      if (results.sPullPipe === 0) {
+        if (dontCheckFailed) {
+          return cb(null, 0);
+        }
+
+        return self.failed.pull(ref, cb);
+      }
+      cb(null, results.sPullPipe);
+    }],
+    last: ['checkFailed', function (cb, results) {
+      if (results.checkFailed === 0) {
+        return callback(new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.'));
+      }
+      callback(null);
+    }]
+  }, function (err, results) {
+    callback(err, results.checkFailed);
+  });
+};
+
+Q.prototype._finish_dirty = function finish_dirty(task, dontCheckFailed, callback) {
+  if (callback === undefined) callback = dontCheckFailed, dontCheckFailed = false;
+
+  var ref = this.ref(task),
+    self = this;
+
+  async.auto({
+    setTask: _.bind(this.set, this, task, ref),
+    sPullPipe: _.bind(this.doing.spullpipe, this.doing, this.done, ref),
+    checkFailed: ['sPullPipe', function (cb, results) {
+      if (results.sPullPipe === 0) {
+        if (dontCheckFailed) {
+          return cb(null, 0);
+        }
+
+        return self.failed.spullpipe(self.done, ref, cb);
+      }
+      cb(null, results.sPullPipe);
+    }],
+    last: ['checkFailed', function (cb, results) {
+      if (results.checkFailed === 0) {
+        return callback(new Error('Element ' + (_.isObject(task) ? JSON.stringify(task) : task.toString()) + ' is not currently processing or failed.'));
+      }
+      callback(null);
+    }]
+  }, function (err, results) {
+    callback(err, results.checkFailed);
+  });
+};
