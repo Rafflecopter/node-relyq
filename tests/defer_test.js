@@ -22,9 +22,7 @@ tests.setUp = function setUp (callback) {
     prefix: 'relyq-test:' + Moniker.choose(),
     clean_finish: true,
     allow_defer: true,
-    deferred_options: {
-      interval: 50,
-    }
+    defer_interval: 50,
   });
   callback();
 };
