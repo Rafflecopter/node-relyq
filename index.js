@@ -1,8 +1,8 @@
 
 var Q = require('./lib/relyq'),
-  inplace = require('./storage/inplace'),
-  redis = require('./storage/redis'),
-  mongo = require('./storage/mongo');
+  inplace = require('./lib/storage/inplace'),
+  redis = require('./lib/storage/redis'),
+  mongo = require('./lib/storage/mongo');
 
 
 module.exports = {
