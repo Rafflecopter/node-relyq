@@ -23,8 +23,6 @@ var relyq = require('..'),
 
 // Storages to test
 var storages = {
-  'InPlaceJson': new relyq.InPlaceJsonQ(redis, {prefix:prefix('InPlaceJson'),clean_finish:false}),
-  'MsgPackInPlace': new relyq.InPlaceMsgPackQ(redis, {prefix:prefix('MsgPackJson'),clean_finish:false}),
   'RedisJson': new relyq.RedisJsonQ(redis, {prefix:prefix('RedisJson'),clean_finish:false}),
   'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs'), clean_finish:false }),
   'RedisMsgPack': new relyq.RedisMsgPackQ(redis, {clean_finish:false,prefix:prefix('MsgPackJson')}),
@@ -32,7 +30,6 @@ var storages = {
   'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
   'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
     getid: function (t) { return t.omgid = t.omgid || count(); }}),
-  'Clone': new relyq.InPlaceJsonQ(redis, {prefix:prefix('Clone'),clean_finish:false}).clone(),
   'CloneRedis': new relyq.RedisJsonQ(redis, {prefix:prefix('CloneRedis'),clean_finish:false}).clone(),
   'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, clean_finish: false, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.'+Moniker.choose()+'.jobs'}).clone(),
 }
@@ -44,7 +41,7 @@ _.each(storages, function (q, name) {
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
   redis.end();
-  _.each('Clone CloneRedis CloneMongo'.split(' '), function (tst) {
+  _.each('CloneRedis CloneMongo'.split(' '), function (tst) {
     storages[tst].doing._redis.end();
   });
   mongoClient.db('test').collection('relyq.jobs').drop(function () {
