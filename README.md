@@ -40,12 +40,15 @@ Options:
   ```
   getid: function (task) { return task.idfield = task.idfield || createid(); }
   ```
+- `allow_defer: true` (default: true) - Allow deferred tasks
+  - `defer_interval: 1000) (default: 1000 milliseconds) - Interval for checking for deferred tasks
 
 See below for storage-specific options...
 
 Operations:
 
 - `q.push(task, function (err, todo_len) {...})`
+  - `q.defer(task, when, function (err) {...})`
 - `q.process(function (err, task) {...})` Pop off the next task to process. May return null.
     - `q.bprocess([timeout,] function (err, task) {...})` A blocking version of process, will never return null unless timeout occurs. Timeout is an integer number of seconds.
 - `q.finish(task, [dontCheckFailed, ] function (err, finish_len) {...})` This method moves a task from the `doing` queue to the `done` queue. If it doesn't exist in `doing`, it is possible you might have moved it to `failed` for a timeout, so we also check for the task in the `failed` queue. An error is passed if the task does not exist in the in either queue. Pass true as the second parameter if you don't wish to check the `failed` queue for the task should it not exist in `doing`.
