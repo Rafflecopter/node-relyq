@@ -12,13 +12,19 @@ var ObjectId = require('mongodb').ObjectID,
 // local
 var Q = require('../lib/relyq');
 
-// Storage services must provide two functions
+// Storage services must provide four functions
 // {
 //   get: function (taskid, callback) {
 //     callback(err, taskobj);
 //   },
-//   set: function (taskobj, callback) {
+//   set: function (taskobj, taskref, callback) {
 //     callback(err, taskid);
+//   }
+//   ref: function (taskobj) {
+//     return ref;
+//   }
+//   del: function (taskobj, taskref, callback) {
+//     callback(err);
 //   }
 // }
 // taskobj - Application level task objects
