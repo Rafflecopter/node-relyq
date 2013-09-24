@@ -1,5 +1,5 @@
 
-var Q = require('./relyq'),
+var Q = require('./lib/relyq'),
   inplace = require('./storage/inplace'),
   redis = require('./storage/redis'),
   mongo = require('./storage/mongo');

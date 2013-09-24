@@ -10,7 +10,7 @@ var ObjectId = require('mongodb').ObjectID,
   redisPkg = require('redis');
 
 // local
-var Q = require('../relyq');
+var Q = require('../lib/relyq');
 
 // Storage services must provide two functions
 // {

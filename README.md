@@ -83,7 +83,6 @@ listener.end(); // notify to wait for all tasks to done(), then end
 
 ```
 npm install -g nodeunit
-npm install --dev
 npm test
 ```
 

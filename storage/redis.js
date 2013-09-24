@@ -8,7 +8,7 @@ var util = require('util');
 var msgpack = require('msgpack');
 
 // local
-var Q = require('../relyq');
+var Q = require('../lib/relyq');
 
 // Storage services must provide two functions
 // {
