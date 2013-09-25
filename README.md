@@ -57,7 +57,6 @@ By far the easiest way to listen for jobs is to use the listener feature.
 
 ```javascript
 var listener = rq.listen({
-    timeout: 2, // seconds
     max_out: 10, // maximum tasks to emit at one time
   })
   .on('error', function (err, optional_taskref) {

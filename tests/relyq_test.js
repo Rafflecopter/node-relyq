@@ -227,6 +227,7 @@ tests.testListen = function (test) {
       if (task.f === 'hello') {
         done();
       } else {
+        process.nextTick(listener.end.bind(listener));
         setTimeout(done, 20);
       }
     })
@@ -241,8 +242,5 @@ tests.testListen = function (test) {
     },
     checkByList(test, Q.done, ['hello']),
     _.bind(Q.push, Q, {f:'hello2'}),
-  ], function (err) {
-    test.ifError(err);
-    listener.end();
-  });
+  ], test.ifError);
 };
