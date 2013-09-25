@@ -4,8 +4,8 @@
 
 local refs = redis.call("zrangebyscore", KEYS[1], 0, ARGV[1])
 for i,ref in pairs(refs) do
-  tref, int = string.match(ref, "([^|]*)|(\d+)")
-  redis.call("zincrby", KEYS[1], int, tref)
+  local tref, interval = string.match(ref, "([^|]*)|([0-9]+)")
+  redis.call("zincrby", KEYS[1], interval, ref)
   refs[i] = tref
 end
 return refs

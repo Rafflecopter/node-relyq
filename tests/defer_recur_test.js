@@ -22,7 +22,11 @@ tests.setUp = function setUp (callback) {
     prefix: 'relyq-test:' + Moniker.choose(),
     clean_finish: true,
     allow_defer: true,
-    defer_polling_interval: 50,
+      defer_polling_interval: 50,
+    allow_recur: true,
+      recur_polling_interval: 50,
+  }).on('error', function (err) {
+    console.error(err.stack);
   });
   callback();
 };
@@ -59,7 +63,7 @@ function checkByList(test, sQ, exp) {
         }, cb);
       },
       function (list2, cb) {
-        test.deepEqual(list2, exp, 'checkByStorageList: ' + stack);
+        test.deepEqual(list2, exp, 'checkByStorageList at ' + Date.now() + ': ' + stack);
         cb();
       }
     ], callback);
@@ -76,4 +80,17 @@ tests.testDefer = function (test) {
     process: ['testtodo', function (cb, results) { Q.process(cb); }],
     // testproc: ['process', function (cb, results) {  test.equal(results.process.f, 'i should be late'); cb(); }],
   }, test.done);
+}
+
+tests.testRecur = function (test) {
+  async.auto({
+    recur: _.bind(Q.recur, Q, {f:'recurrence'}, 100),
+    w1: ['recur', function (cb, results) {setTimeout(cb, 75);}],
+    t1: ['w1', checkByList(test, Q.todo, ['recurrence'])],
+    f1: ['t1', _.bind(Q.process, Q)],
+    f2: ['f1', function (cb, res) { if (!res.f1) return cb(new Error('nothing to process')); Q.finish(res.f1, cb); }],
+    t2: ['f1', checkByList(test, Q.todo, [])],
+    w2: ['w1', function (cb, res) { setTimeout(cb, 100); }],
+    t3: ['w2', checkByList(test, Q.todo, ['recurrence'])],
+  }, test.done)
 }
