@@ -94,3 +94,23 @@ tests.testRecur = function (test) {
     t3: ['w2', checkByList(test, Q.todo, ['recurrence'])],
   }, test.done)
 }
+
+tests.testDoubleRecur = function (test) {
+  async.auto({
+    recur1: _.bind(Q.recur, Q, {f:'recurrence', id: '123'}, 100),
+    recur: ['recur1', _.bind(Q.recur, Q, {f:'recurrence', id: '123'}, 100)],
+    w1: ['recur', function (cb, results) {setTimeout(cb, 75);}],
+    t1: ['w1', checkByList(test, Q.todo, ['recurrence'])],
+  }, test.done)
+}
+
+tests.testRecurRemove = function (test) {
+  async.auto({
+    recur: _.bind(Q.recur, Q, {f:'recurrer', id:'456'}, 100),
+    w1: ['recur', function (cb, results) {setTimeout(cb, 75);}],
+    t1: ['w1', checkByList(test, Q.todo, ['recurrer'])],
+    remove: ['w1', _.bind(Q.recurring.remove, Q.recurring, '456', 100)],
+    w2: ['w1', function (cb, results) {setTimeout(cb, 150);}],
+    t2: ['w2', checkByList(test, Q.todo, ['recurrer'])],
+  }, test.done)
+}
