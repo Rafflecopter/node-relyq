@@ -92,7 +92,6 @@ Normal operation stores the full task description or object in the queue itself.
 The Redis backend stores serialized task objects in Redis. Each options object also accepts the `storage_prefix` field to set the prefix for where task objects are stored.
 
 - `new relyq.RedisJsonQ(redisClient, prefix, [{delimeter: ':'}])`
-- `new relyq.RedisMsgPackQ(redisClient, prefix, [{delimeter: ':'}])`
 
 ### Mongo
 
