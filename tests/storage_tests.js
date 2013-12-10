@@ -25,7 +25,6 @@ var relyq = require('..'),
 var storages = {
   'RedisJson': new relyq.RedisJsonQ(redis, {prefix:prefix('RedisJson'),clean_finish:false}),
   'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs'), clean_finish:false }),
-  'RedisMsgPack': new relyq.RedisMsgPackQ(redis, {clean_finish:false,prefix:prefix('MsgPackJson')}),
   'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo'), clean_finish:false }),
   'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
   'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
