@@ -76,6 +76,35 @@ var listener = rq.listen({
 listener.end(); // notify to wait for all tasks to done(), then end
 ```
 
+## Deferred Tasks
+
+```javascript
+var q = new relyq.MongoQ({ allow_defer: true }) // Non-redis is recommended for applications with a lot of deferred tasks
+
+// Defer a task using the when field
+q.push({
+  some: 'task',
+  id: 'known-id',
+  when: Date.now() + 1000
+})
+
+// Change the time to process by using the same ID
+q.push({
+  some: 'task',
+  id: 'known-id',
+  when: Date.now() + 5000
+})
+
+// Or use the direct .defer()
+q.defer(taskobject, whentime, callback)
+
+// We can also undefer things
+q.undefer_remove('known-id')
+
+// Do it immediately
+q.undefer_push('known-id')
+```
+
 ## Tests
 
 ```

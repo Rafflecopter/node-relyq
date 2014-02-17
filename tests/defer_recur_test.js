@@ -82,6 +82,19 @@ tests.testDefer = function (test) {
   }, test.done);
 }
 
+tests.testUndefer = function (test) {
+  var now = Date.now();
+  async.auto({
+    defer: Q.defer.bind(Q, {f:'nomnom', id: 'cookie-monster'}, Date.now() + 50),
+    defer2: Q.push.bind(Q, {f: 'yummy', id: 'veggie-monster', when: Date.now() + 100}),
+    undefer_remove: ['defer', Q.undefer_remove.bind(Q, 'cookie-monster')],
+    undefer_push: ['defer2', Q.undefer_push.bind(Q, 'veggie-monster')],
+    testtodo: ['undefer_push', 'undefer_remove', checkByList(test, Q.todo, ['yummy'])],
+    wait: ['testtodo', function (cb) { setTimeout(cb, 120) }],
+    process: ['testtodo', function (cb, results) { Q.process(cb); }],
+  }, test.done);
+}
+
 tests.testRecur = function (test) {
   async.auto({
     recur: _.bind(Q.recur, Q, {f:'recurrence'}, 100),
