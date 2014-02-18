@@ -81,6 +81,8 @@ function createTests(Q) {
           }, cb);
         },
         function (list2, cb) {
+          list2 = list2.map(function (obj) { return _.omit(obj, 'error') })
+          exp = exp.map(function (obj) { return _.omit(obj, 'error') })
           test.deepEqual(list2, exp, 'checkByStorageList: ' + stack);
           cb();
         }
@@ -142,7 +144,7 @@ function createTests(Q) {
         test.deepEqual(results[16], task2);
 
         if (!InPlace) {
-          test.equal(task2.error, 'Error: ahh!');
+          test.ok(task2.error && task2.error.match(/^Error: ahh!/));
           test.deepEqual(results[17], null);
         } else {
           test.deepEqual(results[17], task1);
