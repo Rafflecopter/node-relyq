@@ -17,7 +17,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "simpleq": "~0.6.4",
+    "simpleq": "~0.6.6",
     "underscore": "~1.5.2",
     "async": "~0.2.9",
     "redis": "~0.8.4",

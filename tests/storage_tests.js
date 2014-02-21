@@ -2,7 +2,7 @@
 require('longjohn').async_trace_limit = -1;
 
 // vendor
-var redis = require('redis').createClient(),
+var redis = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
   Moniker = require('moniker'),
   async = require('async'),
   _ = require('underscore')
@@ -50,6 +50,10 @@ process.on('uncaughtException', function (err) {
 
 function createTests(Q) {
   var tests = {};
+
+  tests.setUp = function setUp(callback) {
+    redis.ready ? callback() : redis.on('ready', callback)
+  }
 
   tests.tearDown = function tearDown (callback) {
     if (Q) {

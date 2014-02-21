@@ -1,8 +1,8 @@
 // relyq_test.js
 
 // vendor
-var redis = require('redis').createClient(),
-  redis2 = require('redis').createClient(),
+var redis = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
+  redis2 = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
   Moniker = require('moniker'),
   async = require('async'),
   _ = require('underscore');
@@ -19,12 +19,17 @@ process.on('uncaughtException', function (err) {
 });
 
 tests.setUp = function setUp (callback) {
-  Q = new relyq.Q(redis, {prefix: 'relyq-test:' + Moniker.choose(), clean_finish: false});
-  Qc = new relyq.Q(redis2, {clean_finish: false, prefix: Q._prefix});
+  async.parallel([
+    redis.ready ? function(cb) { cb() } : redis.on.bind(redis, 'ready'),
+    redis2.ready ? function(cb) { cb() } : redis2.on.bind(redis2, 'ready'),
+  ], function () {
+    Q = new relyq.Q(redis, {prefix: 'relyq-test:' + Moniker.choose(), clean_finish: false});
+    Qc = new relyq.Q(redis2, {clean_finish: false, prefix: Q._prefix});
 
-  Q.on('error', function (err) { throw err; })
-  Qc.on('error', function (err) { throw err; })
-  callback();
+    Q.on('error', function (err) { throw err; })
+    Qc.on('error', function (err) { throw err; })
+    callback();
+  })
 };
 
 tests.tearDown = function tearDown (callback) {
@@ -231,16 +236,17 @@ tests.testListen = function (test) {
         setTimeout(done, 20);
       }
     })
-    .on('end', function () {
+    .once('end', function () {
       checkByList(test, Q.done, ['hello2', 'hello'])(test.done);
+    })
+    .once('ready', function () {
+      async.series([
+        _.bind(Q.push, Q, {f:'hello'}),
+        function (cb) {
+          setTimeout(cb, 10); // approx time to roundtrip local redis
+        },
+        checkByList(test, Q.done, ['hello']),
+        _.bind(Q.push, Q, {f:'hello2'}),
+      ], test.ifError);
     });
-
-  async.series([
-    _.bind(Q.push, Q, {f:'hello'}),
-    function (cb) {
-      setTimeout(cb, 10); // approx time to roundtrip local redis
-    },
-    checkByList(test, Q.done, ['hello']),
-    _.bind(Q.push, Q, {f:'hello2'}),
-  ], test.ifError);
 };
