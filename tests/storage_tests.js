@@ -29,8 +29,6 @@ var storages = {
   'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
   'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
     getid: function (t) { return t.omgid = t.omgid || count(); }}),
-  'CloneRedis': new relyq.RedisJsonQ(redis, {prefix:prefix('CloneRedis'),clean_finish:false}).clone(),
-  'CloneMongo': new relyq.MongoQ(redis, {mongo: mongoClient, clean_finish: false, prefix: prefix('CloneMongo'), db:'test', collection: 'relyq.'+Moniker.choose()+'.jobs'}).clone(),
 }
 
 _.each(storages, function (q, name) {
@@ -40,9 +38,6 @@ _.each(storages, function (q, name) {
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
   redis.end();
-  _.each('CloneRedis CloneMongo'.split(' '), function (tst) {
-    storages[tst].doing._redis.end();
-  });
   mongoClient.db('test').collection('relyq.jobs').drop(function () {
     mongoClient.close(test.done);
   });
