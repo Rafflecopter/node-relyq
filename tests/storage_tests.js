@@ -2,7 +2,8 @@
 require('longjohn').async_trace_limit = -1;
 
 // vendor
-var redis = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
+var redisPkg = require('redis'),
+  createRedis = function () { return redisPkg.createClient(6379, 'localhost', { enable_offline_queue: false }) },
   Moniker = require('moniker'),
   async = require('async'),
   _ = require('underscore')
@@ -23,11 +24,11 @@ var relyq = require('..'),
 
 // Storages to test
 var storages = {
-  'RedisJson': new relyq.RedisJsonQ(redis, {prefix:prefix('RedisJson'),clean_finish:false}),
-  'RedisJson2': new relyq.RedisJsonQ(redis, { prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs'), clean_finish:false }),
-  'Mongo': new relyq.MongoQ(redis, { mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo'), clean_finish:false }),
-  'CreateId': new relyq.RedisJsonQ(redis, { prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
-  'CreateId2': new relyq.MongoQ(redis, { mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
+  'RedisJson': new relyq.RedisJsonQ({ createRedis: createRedis, prefix:prefix('RedisJson'),clean_finish:false}),
+  'RedisJson2': new relyq.RedisJsonQ({ createRedis: createRedis, prefix: prefix('RedisJson2'), idfield: 'otherid', storage_prefix: prefix('RedisJson2-jobs'), clean_finish:false }),
+  'Mongo': new relyq.MongoQ({ createRedis: createRedis, mongo: mongoClient, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('Mongo'), clean_finish:false }),
+  'CreateId': new relyq.RedisJsonQ({ createRedis: createRedis, prefix: prefix('CreateId'), idfield: 'omgid', clean_finish:false,getid: function (t) { return t.omgid = t.omgid || uuid.v4(); }}),
+  'CreateId2': new relyq.MongoQ({ createRedis: createRedis, mongo: mongoClient,clean_finish:false, db: 'test', collection: 'relyq.'+Moniker.choose()+'.jobs', prefix: prefix('CreateId2'), idfield: 'omgid',
     getid: function (t) { return t.omgid = t.omgid || count(); }}),
 }
 
@@ -37,7 +38,6 @@ _.each(storages, function (q, name) {
 
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
-  redis.end();
   mongoClient.db('test').collection('relyq.jobs').drop(function () {
     mongoClient.close(test.done);
   });
@@ -51,11 +51,11 @@ process.on('uncaughtException', function (err) {
 function createTests(Q) {
   var tests = {};
 
-  tests.setUp = function setUp(callback) {
-    redis.ready ? callback() : redis.on('ready', callback)
+  tests.setUp = function (callback) {
+    Q._redis.ready ? callback() : Q.once('ready', callback)
   }
 
-  tests.tearDown = function tearDown (callback) {
+  tests.tearDown = function (callback) {
     if (Q) {
       return async.parallel([
         _.bind(Q.todo.clear, Q.todo),
@@ -182,7 +182,7 @@ function createTests(Q) {
           }
           setTimeout(ndone, i*20);
         })
-        .on('end', function () {
+        .once('end', function () {
           async.series([
             checkByStorageList(test, Q.done, [atask1]),
             checkByStorageList(test, Q.failed, [_.defaults(atask2, {error:'Error: omg'})]),
@@ -204,6 +204,13 @@ function createTests(Q) {
         listener.end();
       });
     };
+  }
+
+  tests.cleanUp = function (test) {
+    Q.end(function () {
+      Q = null
+      test.done()
+    })
   }
 
   return tests;

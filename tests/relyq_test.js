@@ -1,8 +1,8 @@
 // relyq_test.js
 
 // vendor
-var redis = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
-  redis2 = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
+var redisPkg = require('redis'),
+  createRedis = function () { return redisPkg.createClient(6379, 'localhost', { enable_offline_queue: false }) }
   Moniker = require('moniker'),
   async = require('async'),
   _ = require('underscore');
@@ -19,35 +19,35 @@ process.on('uncaughtException', function (err) {
 });
 
 tests.setUp = function setUp (callback) {
-  async.parallel([
-    redis.ready ? function(cb) { cb() } : redis.on.bind(redis, 'ready'),
-    redis2.ready ? function(cb) { cb() } : redis2.on.bind(redis2, 'ready'),
-  ], function () {
-    Q = new relyq.Q(redis, {prefix: 'relyq-test:' + Moniker.choose(), clean_finish: false});
-    Qc = new relyq.Q(redis2, {clean_finish: false, prefix: Q._prefix});
+  Q = new relyq.Q({prefix: 'relyq-test:' + Moniker.choose(), clean_finish: false, createRedis: createRedis});
+  Qc = new relyq.Q({clean_finish: false, prefix: Q._prefix, createRedis: createRedis});
 
-    Q.on('error', function (err) { throw err; })
-    Qc.on('error', function (err) { throw err; })
-    callback();
-  })
+  Q.on('error', function (err) { throw err; })
+  Qc.on('error', function (err) { throw err; })
+
+  async.parallel([
+    Q.once.bind(Q, 'ready'),
+    Qc.once.bind(Qc, 'ready')
+  ], callback);
 };
 
 tests.tearDown = function tearDown (callback) {
   if (Q) {
-    return async.parallel([
-      _.bind(Q.todo.clear, Q.todo),
-      _.bind(Q.doing.clear, Q.doing),
-      _.bind(Q.done.clear, Q.done),
-      _.bind(Q.failed.clear, Q.failed)
-    ], callback);
+    return async.auto({
+      todo: _.bind(Q.todo.clear, Q.todo),
+      doing: _.bind(Q.doing.clear, Q.doing),
+      done: _.bind(Q.done.clear, Q.done),
+      failed: _.bind(Q.failed.clear, Q.failed),
+      cleared: ['todo', 'doing', 'done', 'failed', function (cb) {cb()}],
+      q: ['cleared', Q.end.bind(Q)],
+      qc: ['cleared', Qc.end.bind(Qc)],
+    }, callback);
   }
   callback();
 };
 
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
-  redis.end();
-  redis2.end();
   test.done();
 };
 

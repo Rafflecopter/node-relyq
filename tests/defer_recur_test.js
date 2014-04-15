@@ -1,7 +1,8 @@
 // defer_test.js
 
 // vendor
-var redis = require('redis').createClient(6379, 'localhost', { enable_offline_queue: false }),
+var redisPkg = require('redis'),
+  createRedis = function () { return redisPkg.createClient(6379, 'localhost', { enable_offline_queue: false }) },
   Moniker = require('moniker'),
   async = require('async'),
   _ = require('underscore');
@@ -18,26 +19,24 @@ process.on('uncaughtException', function (err) {
 });
 
 tests.setUp = function setUp (callback) {
-  redis.ready ? ready() : redis.on('ready', ready)
+  Q = new relyq.Q({
+    prefix: 'relyq-test:' + Moniker.choose(),
+    clean_finish: true,
+    allow_defer: true,
+      defer_polling_interval: 50,
+    allow_recur: true,
+      recur_polling_interval: 50,
+    createRedis: createRedis
+  })
+    .on('error', function (err) {
+      console.error(err.stack);
+    });
 
-  function ready() {
-    Q = new relyq.Q(redis, {
-      prefix: 'relyq-test:' + Moniker.choose(),
-      clean_finish: true,
-      allow_defer: true,
-        defer_polling_interval: 50,
-      allow_recur: true,
-        recur_polling_interval: 50,
-    })
-      .on('error', function (err) {
-        console.error(err.stack);
-      });
-
-    async.parallel([
-      Q.on.bind(Q, 'deferred-ready'),
-      Q.on.bind(Q, 'recurring-ready'),
-    ], callback)
-  }
+  async.parallel([
+    Q.once.bind(Q, 'ready'),
+    Q.on.bind(Q, 'deferred-ready'),
+    Q.on.bind(Q, 'recurring-ready'),
+  ], callback)
 };
 
 tests.tearDown = function tearDown (callback) {
@@ -46,15 +45,15 @@ tests.tearDown = function tearDown (callback) {
       _.bind(Q.todo.clear, Q.todo),
       _.bind(Q.doing.clear, Q.doing),
       _.bind(Q.failed.clear, Q.failed),
-      _.bind(Q.end, Q),
-    ], callback);
+    ], function (err) {
+      Q.end(callback);
+    });
   }
   callback();
 };
 
 // Clean up redis to allow a clean escape!
 exports.cleanUp = function cleanUp (test) {
-  redis.end();
   test.done();
 };
 

@@ -2,9 +2,11 @@
 
 A relatively simple Redis-backed reliable task queue and state machine.
 
-Its made up of four [simpleq](https://github.com/Rafflecopter/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic. Tasks can be represented as any data type.
+Its made up of four [simpleq](https://github.com/Rafflecopter/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic.
 
 _Note_: relyq assumes all tasks are objects. It is opinionated in that way. Also, all tasks have id's. If they don't exist, they are created using `uuid.v4()`.
+
+_NEW_: It is deprecated to pass in a redis object like `new Q(redis, opts)`, instead use the `new Q({createRedis: function () {}, otherOpts...})` method. Now relyq will clean up the redis instance as well on `.end()`.
 
 ## Operation
 
@@ -18,20 +20,19 @@ Creation:
 
 ```javascript
 var redis = require('redis'),
-  cli = redis.createClient();
+  createRedis = function () { return redis.createClient() };
 
 var relyq = require('relyq'),
-  Q = relyq.InPlaceBasicQ; // pick a queue (see below)
+  Q = relyq.RedisJsonQ; // pick a queue (see below)
 
 // Then instantiate as described below
-var q = new Q(cli, 'my-relyq');
-// or
-var q = new Q(cli, options);
+var q = new Q({prefix: 'my-relyq', createRedis: createRedis});
 ```
 
 Options:
 
 - `prefix: 'my-relyq'` (required) - The redis key prefix for the sub-queues.
+- `createRedis: function ()` (required) - A function of no arguments that returns a (new) redis client.
 - `clean_finish: true` (default: true) - _IMPORTANT_ Clean finish will not store tasks that are completed without error. They will be immediately deleted from the queue and the storage backend. This saves Redis memory. If you wish to keep your documents in storage (a good idea with Mongo storage), but remove them from the queue, set `clean_finish: 'keep_storage'`.
 - `delimeter: ':'` (default: ':') - The redis key delimeter for the sub-queues.
 - `idfield: 'id'` (default: 'id') - The field of the task objects where the ID can be found.
