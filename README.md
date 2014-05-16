@@ -2,7 +2,7 @@
 
 A relatively simple Redis-backed reliable task queue and state machine.
 
-Its made up of four [simpleq](https://github.com/Rafflecopter/simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic.
+Its made up of four [simpleq](https://github.com/Rafflecopter/node-simpleq)'s: todo, doing, failed, and done. Tasks will never be dropped on the floor even if a processing server crashes because all operations are atomic.
 
 _Note_: relyq assumes all tasks are objects. It is opinionated in that way. Also, all tasks have id's. If they don't exist, they are created using `uuid.v4()`.
 
