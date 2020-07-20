@@ -27,7 +27,6 @@
   "devDependencies": {
     "moniker": "~0.1.2",
     "longjohn": "~0.2.1",
-    "redis": "~0.10.1",
-    "hiredis": "~0.1.16"
+    "redis": "~0.10.1"
   }
 }
