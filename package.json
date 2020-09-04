@@ -19,7 +19,7 @@
   "dependencies": {
     "underscore": "~1.5.2",
     "async": "~0.2.9",
-    "mongodb": "~1.3.19",
+    "mongodb": "~3.6.1",
     "redis-eval": "git+ssh://git@github.com:Rafflecopter/node-redis-eval",
     "uuid": "~1.4.1",
     "simpleq": "git+ssh://git@github.com:Rafflecopter/node-simpleq"
